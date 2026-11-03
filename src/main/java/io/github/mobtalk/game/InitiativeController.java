@@ -70,7 +70,7 @@ public final class InitiativeController {
 
     void tick(ServerWorld world) {
         if (!bridge.config.enabled || !bridge.config.initiative || world.getTime() % PERIOD != PHASE) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         Sky sky = watchSky(world, now);
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
@@ -81,7 +81,7 @@ public final class InitiativeController {
                 Long met = lastNear.get(mob.getUuid());
                 long lastMet = met == null ? bridge.memory.lastTurnMillis(mob.getUuid()) : Math.max(met, bridge.memory.lastTurnMillis(mob.getUuid()));
                 if (distance <= bridge.config.initiativeMetRange) lastNear.put(mob.getUuid(), now);
-                if (playerBusy || !idle() || !bridge.memory.acquainted(mob.getUuid())) continue;
+                if (playerBusy || !idle() || !bridge.memory.acquainted(mob.getUuid()) || bridge.confession.hushes(mob)) continue;
                 Initiative.Facts facts = facts(world, mob, player, distance, lastMet, sky, now);
                 Initiative.Trigger trigger = Initiative.detect(facts, now);
                 if (trigger == null) continue;

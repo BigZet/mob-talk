@@ -58,12 +58,14 @@ public final class OfficialContent {
     public static final Identifier DESK_ID = Identifier.of("mobtalk", "official_desk");
     public static final RegistryKey<PointOfInterestType> DESK_POI = RegistryKey.of(RegistryKeys.POINT_OF_INTEREST_TYPE, DESK_ID);
     public static Block DESK;
-    public static Item ENVELOPE, CERTIFICATE;
+    public static Item ENVELOPE, CERTIFICATE, PASSPORT, LEDGER, CIVIL_CERTIFICATE, SPRAVKA;
     public static VillagerProfession HEAD, CLERK, INSPECTOR;
     /** Where the envelope keeps its emeralds (custom data). */
     static final String EMERALDS = "mobtalk_emeralds";
     /** The certificate's owner, the issuing official and the game day (custom data). */
     static final String HOLDER = "mobtalk_holder", ISSUER = "mobtalk_issuer", DAY = "mobtalk_day";
+    /** The passport's holder UUID, series and number, and registration (custom data, with {@link #HOLDER}, {@link #ISSUER}, {@link #DAY}). */
+    static final String HOLDER_ID = "mobtalk_holder_id", NUMBER = "mobtalk_number", PLACE = "mobtalk_place";
     private static boolean registered;
 
     /** The desk: a dark top with green cloth on four legs, a stack of papers and a stamp; faces the one who put it down. */
@@ -132,6 +134,82 @@ public final class OfficialContent {
         }
     }
 
+    /** The passport: holder, series and number, registration, who issued it and when; its tooltip shows the holder's face. */
+    public static final class Passport extends Item {
+        Passport(Settings settings) { super(settings); }
+        @Override public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+            NbtCompound tag = data(stack);
+            if (!tag.contains(HOLDER)) { tooltip.add(Text.translatable("mobtalk.passport.blank").formatted(Formatting.DARK_GRAY)); return; }
+            tooltip.add(Text.translatable("mobtalk.passport.holder", tag.getString(HOLDER)).formatted(Formatting.GRAY));
+            tooltip.add(Text.translatable("mobtalk.passport.number", tag.getString(NUMBER)).formatted(Formatting.GRAY));
+            if (!tag.getString(PLACE).isBlank()) tooltip.add(Text.translatable("mobtalk.passport.place", tag.getString(PLACE)).formatted(Formatting.GRAY));
+            tooltip.add(Text.translatable("mobtalk.passport.issued", tag.getString(ISSUER), tag.getLong(DAY)).formatted(Formatting.DARK_GRAY));
+        }
+        @Override public java.util.Optional<net.minecraft.item.tooltip.TooltipData> getTooltipData(ItemStack stack) {
+            NbtCompound tag = data(stack);
+            if (!tag.contains(HOLDER_ID)) return java.util.Optional.empty();
+            try { return java.util.Optional.of(new Face(java.util.UUID.fromString(tag.getString(HOLDER_ID)), tag.getString(HOLDER))); }
+            catch (IllegalArgumentException e) { return java.util.Optional.empty(); }
+        }
+    }
+    /** A civil-status certificate or a справка ({@link CivilOffice}): the form's title, the blank's number, the printed lines and who
+     * issued it on which day. The look follows the paper (custom model data: the colour of the certificate, the permit's red band). */
+    public static final class OfficialPaper extends Item {
+        OfficialPaper(Settings settings) { super(settings); }
+        @Override public Text getName(ItemStack stack) {
+            String title = data(stack).getString(TITLE);
+            return title.isBlank() ? super.getName(stack) : Text.literal(Character.toUpperCase(title.charAt(0)) + title.substring(1));
+        }
+        @Override public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+            NbtCompound tag = data(stack);
+            if (!tag.contains(TITLE)) { tooltip.add(Text.translatable("mobtalk.civil.blank").formatted(Formatting.DARK_GRAY)); return; }
+            if (!tag.getString(NUMBER).isBlank()) tooltip.add(Text.literal(tag.getString(NUMBER)).formatted(Formatting.DARK_RED));
+            net.minecraft.nbt.NbtList lines = tag.getList(LINES, net.minecraft.nbt.NbtElement.STRING_TYPE);
+            for (int i = 0; i < lines.size(); i++) tooltip.add(Text.literal(lines.getString(i)).formatted(Formatting.GRAY));
+            if (tag.getInt(ACT) > 0) tooltip.add(Text.translatable("mobtalk.civil.act", tag.getInt(ACT)).formatted(Formatting.DARK_GRAY));
+            tooltip.add(Text.translatable("mobtalk.civil.issued", tag.getString(ISSUER), tag.getLong(DAY)).formatted(Formatting.DARK_GRAY));
+        }
+    }
+    /** The paper's custom data keys (with {@link #NUMBER}, {@link #ISSUER}, {@link #DAY}, {@link #HOLDER_ID}). */
+    static final String TITLE = "mobtalk_title", PAPER = "mobtalk_paper", LINES = "mobtalk_lines", ACT = "mobtalk_act";
+    /** A paper made out to {@code holder}: its kind, title, blank number, act number (0 for none), printed lines, issuer and day. */
+    static ItemStack paper(io.github.mobtalk.core.CivilRegistry.Paper paper, java.util.UUID holder, String number, int act, List<String> lines, String issuer, long day) {
+        ItemStack stack = new ItemStack(paper.certificate ? CIVIL_CERTIFICATE : SPRAVKA);
+        NbtCompound tag = new NbtCompound();
+        tag.putString(PAPER, paper.name()); tag.putString(TITLE, paper.title); tag.putString(NUMBER, number); tag.putInt(ACT, act);
+        tag.putString(HOLDER_ID, holder.toString()); tag.putString(ISSUER, issuer); tag.putLong(DAY, day);
+        net.minecraft.nbt.NbtList list = new net.minecraft.nbt.NbtList();
+        for (String line : lines) list.add(net.minecraft.nbt.NbtString.of(line));
+        tag.put(LINES, list);
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
+        int look = switch (paper) {
+            case BIRTH_CERTIFICATE -> 1; case MARRIAGE_CERTIFICATE -> 2; case DIVORCE_CERTIFICATE -> 3; case DEATH_CERTIFICATE -> 4;
+            case BUILD_PERMIT -> 1; case NO_RECORD -> 2; default -> 0;
+        };
+        if (look > 0) stack.set(DataComponentTypes.CUSTOM_MODEL_DATA, new net.minecraft.component.type.CustomModelDataComponent(look));
+        return stack;
+    }
+    /** Which paper this stack is, or null. */
+    public static io.github.mobtalk.core.CivilRegistry.Paper paperOf(ItemStack stack) {
+        if (stack == null || !(stack.isOf(CIVIL_CERTIFICATE) || stack.isOf(SPRAVKA))) return null;
+        return io.github.mobtalk.core.CivilRegistry.Paper.of(data(stack).getString(PAPER));
+    }
+
+    /** The head's black ledger from the dacha's safe: whose, which village, how many envelopes. */
+    public static final class Ledger extends Item {
+        Ledger(Settings settings) { super(settings); }
+        @Override public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
+            LedgerData d = ledgerData(stack);
+            if (d == null) return;
+            tooltip.add(Text.translatable("mobtalk.graft.ledger.tooltip", d.headName(), d.count()).formatted(Formatting.GRAY));
+            tooltip.add(Text.translatable("mobtalk.graft.ledger.usage").formatted(Formatting.DARK_GRAY));
+        }
+    }
+    public record LedgerData(java.util.UUID head, String headName, String village, int count) { }
+
+    /** The holder's face in the passport's tooltip (drawn on the client from the skin). */
+    public record Face(java.util.UUID id, String name) implements net.minecraft.item.tooltip.TooltipData { }
+
     public static void register() {
         if (registered) return;
         registered = true;
@@ -142,7 +220,20 @@ public final class OfficialContent {
         ENVELOPE = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "envelope"), new Envelope(new Item.Settings().maxCount(16)));
         CERTIFICATE = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "certificate"), new Certificate(new Item.Settings().maxCount(1).rarity(Rarity.UNCOMMON)));
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(entries -> entries.add(deskItem));
-        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> { entries.add(ENVELOPE); entries.add(CERTIFICATE); });
+        LEDGER = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "black_ledger"), new Ledger(new Item.Settings().maxCount(1).rarity(Rarity.RARE)));
+        PASSPORT = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "passport"), new Passport(new Item.Settings().maxCount(1).rarity(Rarity.UNCOMMON)));
+        CIVIL_CERTIFICATE = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "civil_certificate"), new OfficialPaper(new Item.Settings().maxCount(1).rarity(Rarity.UNCOMMON)));
+        SPRAVKA = Registry.register(Registries.ITEM, Identifier.of("mobtalk", "spravka"), new OfficialPaper(new Item.Settings().maxCount(1)));
+        ItemGroupEvents.modifyEntriesEvent(ItemGroups.TOOLS).register(entries -> { entries.add(ENVELOPE); entries.add(CERTIFICATE); entries.add(CIVIL_CERTIFICATE); entries.add(SPRAVKA); });
+        // Shift+right-click an official: a visit to the office (the passport); the client answers too, so no trades open.
+        net.fabricmc.fabric.api.event.player.UseEntityCallback.EVENT.register((player, world, hand, entity, hit) -> {
+            if (hand != Hand.MAIN_HAND || !player.isSneaking() || !(entity instanceof VillagerEntity villager) || rank(villager) == null || villager.isBaby()) return net.minecraft.util.ActionResult.PASS;
+            if (world.isClient) return net.minecraft.util.ActionResult.SUCCESS;
+            MobGameBridge bridge = MobGameBridge.forEntity(villager);
+            if (bridge == null || !(player instanceof net.minecraft.server.network.ServerPlayerEntity sp) || !(world instanceof net.minecraft.server.world.ServerWorld sw)) return net.minecraft.util.ActionResult.PASS;
+            return bridge.passports.visit(sw, sp, villager) ? net.minecraft.util.ActionResult.SUCCESS : net.minecraft.util.ActionResult.PASS;
+        });
+        CivilOffice.registerCommand(p -> { MobGameBridge b = MobGameBridge.forEntity(p); return b == null ? null : b.civil; });
         // The clerk first: vanilla gives a free villager at a desk the first profession whose job site it is.
         CLERK = profession(Officialdom.Rank.CLERK, true);
         HEAD = profession(Officialdom.Rank.HEAD, false);
@@ -201,5 +292,40 @@ public final class OfficialContent {
         NbtCompound tag = new NbtCompound(); tag.putString(HOLDER, holder); tag.putString(ISSUER, issuer); tag.putLong(DAY, day);
         stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
         return stack;
+    }
+    /** A passport made out to the player. */
+    static ItemStack passport(java.util.UUID holderId, String holder, String number, String place, String issuer, long day) {
+        ItemStack stack = new ItemStack(PASSPORT);
+        NbtCompound tag = new NbtCompound();
+        tag.putString(HOLDER, holder); tag.putString(HOLDER_ID, holderId.toString()); tag.putString(NUMBER, number);
+        tag.putString(PLACE, place == null ? "" : place); tag.putString(ISSUER, issuer); tag.putLong(DAY, day);
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
+        return stack;
+    }
+    /** Whether the player carries his own passport. */
+    public static boolean hasPassport(PlayerEntity player) {
+        if (PASSPORT == null || player == null) return false;
+        String id = player.getUuidAsString();
+        for (int i = 0; i < player.getInventory().size(); i++) {
+            ItemStack stack = player.getInventory().getStack(i);
+            if (stack.isOf(PASSPORT) && id.equals(data(stack).getString(HOLDER_ID))) return true;
+        }
+        return false;
+    }
+    /** The holder UUID written in a passport, or "" for anything else. */
+    public static String passportHolder(ItemStack stack) { return stack != null && PASSPORT != null && stack.isOf(PASSPORT) ? data(stack).getString(HOLDER_ID) : ""; }
+    /** The head's black ledger. */
+    static ItemStack ledger(java.util.UUID head, String headName, String village, int count) {
+        ItemStack stack = new ItemStack(LEDGER);
+        NbtCompound tag = new NbtCompound();
+        tag.putString(HOLDER_ID, head.toString()); tag.putString(HOLDER, headName); tag.putString(PLACE, village); tag.putInt(EMERALDS, count);
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(tag));
+        return stack;
+    }
+    public static LedgerData ledgerData(ItemStack stack) {
+        if (stack == null || LEDGER == null || !stack.isOf(LEDGER)) return null;
+        NbtCompound tag = data(stack);
+        try { return new LedgerData(java.util.UUID.fromString(tag.getString(HOLDER_ID)), tag.getString(HOLDER), tag.getString(PLACE), tag.getInt(EMERALDS)); }
+        catch (IllegalArgumentException e) { return null; }
     }
 }

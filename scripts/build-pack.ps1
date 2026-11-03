@@ -37,7 +37,7 @@ if (-not (Test-Path "$inst\instance.cfg")) {
     $drop = '^(name|uuid|notes|lastLaunchTime|lastTimePlayed|totalTimePlayed|OverrideJavaArgs|JvmArgs)='
     $cfg = foreach ($l in ([IO.File]::ReadAllLines("$src\instance.cfg", [Text.Encoding]::UTF8) | Where-Object { $_ -notmatch $drop })) {
         $l
-        if ($l -eq '[General]') { 'name=Наша сборка (все моды)'; 'notes=Mob Talk, Божественный блок, борщевик, клетки для попугаев, Viewer Parrots, CTOV, видео. Собирает scripts\build-pack.ps1 из mob-talk.' }
+        if ($l -eq '[General]') { 'name=Наша сборка (все моды)'; 'notes=Mob Talk, колонка Алисы, Божественный блок, борщевик, клетки для попугаев, Viewer Parrots, CTOV, видео. Собирает scripts\build-pack.ps1 из mob-talk.' }
     }
     [IO.File]::WriteAllLines("$staging\instance.cfg", [string[]]$cfg, (New-Object Text.UTF8Encoding($false)))
     $skip = @('saves', 'mods', 'logs', 'screenshots', 'crash-reports', 'downloads', 'data') + @(Get-ChildItem -LiteralPath "$src\minecraft" -Directory -Filter '*-backups' | ForEach-Object Name)

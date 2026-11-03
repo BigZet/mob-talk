@@ -93,6 +93,8 @@ public final class MobTalkClient implements ClientModInitializer {
     });
     /** Движок второй версии (свадьба у колокола в одиночке): создаётся лениво на вызывающем потоке. */
     private volatile ConversationEngine engine;
+    /** Б4: сервер ждёт слов исповеди — сколько секунд писать голос (0 — исповедь не слушает). */
+    private volatile int confessionSeconds;
     private Path engineWorld; private MobTalkConfig engineConfig;
     private volatile Decider decider = new RuleDecider();
     private MobTalkConfig config = new MobTalkConfig();
@@ -100,6 +102,7 @@ public final class MobTalkClient implements ClientModInitializer {
     UUID selected;
     KeyBinding talkKey, settingsKey, tradeKey, giftKey, familyKey;
     private final MobLabels labels = new MobLabels(this);
+    final MoodCard moodCard = new MoodCard(this);
     private final ChildView children = new ChildView(this);
     final MobViews views = new MobViews();
     private final ClipAssembler clips = new ClipAssembler();
@@ -132,25 +135,49 @@ public final class MobTalkClient implements ClientModInitializer {
     private UUID speakingMob;
     int speechStarts, speechCutoffs, repliesShown;
 
+    /** The running client, for optional integrations loaded by other mods (the JourneyMap plugin). */
+    static volatile MobTalkClient active;
+
     @Override public void onInitializeClient() {
+        active = this;
         ClientNet.register(this);
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.mobtalk"));
         tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
+        // Одиночка: клятву, распознанную сервером (OpenRouter/свой Whisper на сервере), берёт клиентская служба свадьбы.
+        io.github.mobtalk.server.DialogueService.LOCAL_VOW = (player, text) -> {
+            if (client.player == null || !client.player.getUuid().equals(player) || !wedding.takesVow() || wedding.serverVowOpen()) return false;
+            client.execute(() -> { wedding.vowHeard(text); requestActive = false; status = "Клятва произнесена"; showHud(); });
+            return true;
+        };
         giftKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.gift", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_G, "category.mobtalk"));
         familyKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.family", InputUtil.Type.KEYSYM, InputUtil.UNKNOWN_KEY.getCode(), "category.mobtalk"));
+        moodCard.key = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.mood", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_LEFT_ALT, "category.mobtalk"));
         MomentClient.register(configDirectory); // Метки для монтажа: клавиша, OBS (идея З4).
         net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents.AFTER_ENTITIES.register(labels::render);
         ChildView.register();
+        PenanceHud.register(this);
+        PassportFace.register(); // Лицо владельца в подсказке паспорта.
+        net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlocks(net.minecraft.client.render.RenderLayer.getTranslucent(), // МФЦ: стекло окна, бутыль кулера.
+                io.github.mobtalk.game.MfcContent.WINDOW, io.github.mobtalk.game.MfcContent.COOLER);
+        net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(io.github.mobtalk.game.MfcContent.PLANT, net.minecraft.client.render.RenderLayer.getCutout());
         io.github.mobtalk.client.human.VillagerLooks.register();
         io.github.mobtalk.client.bandit.BanditRenderer.register(); // Ночные бандиты в городах.
+        io.github.mobtalk.client.roads.RoadCartRenderer.register();
         net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry.register(io.github.mobtalk.game.BarContent.SEAT, net.minecraft.client.render.entity.EmptyEntityRenderer::new);
+        // Казино: печатные поля на сукне и подвески люстры прозрачны по краям.
+        for (net.minecraft.block.Block block : io.github.mobtalk.game.CasinoContent.BLOCKS.values())
+            net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(block, net.minecraft.client.render.RenderLayer.getCutout());
+        net.fabricmc.fabric.api.blockrenderlayer.v1.BlockRenderLayerMap.INSTANCE.putBlock(io.github.mobtalk.game.CasinoContent.FOUNTAIN, net.minecraft.client.render.RenderLayer.getTranslucent());
+        net.minecraft.client.render.block.entity.BlockEntityRendererFactories.register(io.github.mobtalk.game.CasinoContent.PALM_ENTITY, context -> new PalmCrownRenderer());
         net.fabricmc.fabric.api.resource.ResourceManagerHelper.get(net.minecraft.resource.ResourceType.CLIENT_RESOURCES).registerReloadListener(
                 new net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener() {
                     @Override public net.minecraft.util.Identifier getFabricId() { return net.minecraft.util.Identifier.of("mobtalk", "human_textures"); }
                     @Override public void reload(net.minecraft.resource.ResourceManager manager) { io.github.mobtalk.client.human.HumanTextures.reload(); }
                 });
         net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(children::renderFade);
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(moodCard::render);
+        net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback.EVENT.register(this::renderHud);
         ScreenEvents.AFTER_INIT.register((minecraft, screen, width, height) -> {
             if (screen instanceof GameMenuScreen) {
                 boolean pack = ModHubScreen.packInstalled();
@@ -364,6 +391,7 @@ public final class MobTalkClient implements ClientModInitializer {
         merchant.end("Мир сменился: торговый разговор отменён");
         cancelWork(AIM_HINT, true, false);
         wedding.reset();
+        confessionSeconds = 0; PenanceHud.text("{}");
         selected = null;
         reach.clear();
         views.clear(); clips.clear(); pendingVoices.clear();
@@ -405,7 +433,7 @@ public final class MobTalkClient implements ClientModInitializer {
         Request seed = request(requestGeneration);
         captureShot(requestGeneration);
         try {
-            int seconds = wedding.takesVow() ? wedding.vowSeconds() : config.maxRecordingSeconds;
+            int seconds = wedding.takesVow() ? wedding.vowSeconds() : confessionSeconds > 0 ? confessionSeconds : config.maxRecordingSeconds;
             MicrophoneRecorder.Capture capture = microphone.start(config.microphoneName, seconds);
             recording = capture;
             merchant.setWork(seed.merchant);
@@ -594,9 +622,22 @@ public final class MobTalkClient implements ClientModInitializer {
         if (fresh) LOGGER.info("Mob Talk: подпись «{}» для {} (entity {}){}", packet.name(), packet.mob(), packet.mobId(),
                 world != null && world.getEntityById(packet.mobId()) == null ? ", сущности нет на клиенте" : "");
     }
+    /** Б4: исповедь слушает ({@code {"open","seconds","entityId"}}): батюшка — собеседник, запись длиннее обычной; или перестала. */
+    private void confessionListen(String json) {
+        try {
+            JsonObject object = JsonParser.parseString(json).getAsJsonObject();
+            boolean open = object.has("open") && object.get("open").getAsBoolean();
+            confessionSeconds = open ? Math.max(1, Math.min(120, object.has("seconds") ? object.get("seconds").getAsInt() : 60)) : 0;
+            int entityId = object.has("entityId") ? object.get("entityId").getAsInt() : -1;
+            if (open && world != null && entityId >= 0 && world.getEntityById(entityId) instanceof MobEntity priest && !priest.getUuid().equals(selected)) select(priest);
+            if (open) { requestActive = false; status = "Исповедь: удерживайте " + talkKey.getBoundKeyLocalizedText().getString() + " и говорите (до " + confessionSeconds + " с)"; showHud(); }
+        } catch (RuntimeException malformed) { confessionSeconds = 0; }
+    }
     void onScreen(String screen, String json) {
         if ("deal".equals(screen)) { merchant.resolved(json); return; }
         if ("wedding_vow".equals(screen)) { if (!wedding.serverVow(json)) requestActive = false; return; }
+        if ("confession_listen".equals(screen)) { confessionListen(json); return; }
+        if ("penance".equals(screen)) { PenanceHud.text(json); return; }
         CompletableFuture<String> waiting = screenRequests.remove(screen);
         if (waiting == null) return;
         try {
@@ -752,13 +793,31 @@ public final class MobTalkClient implements ClientModInitializer {
                 : far != null && far != mob ? "в прицеле: " + far.getName().getString() + " (далеко, подойдите) · " : "";
         net.minecraft.text.MutableText line = Text.literal("Mob Talk · " + aimLabel + targetLabel);
         if (mob != null && state != null && config.showStateHud && !labelled && !state.word().isEmpty())
-            line.append(Text.translatable("mobtalk.state." + state.word()).formatted(state.wordSign() < 0 ? net.minecraft.util.Formatting.RED
+            line.append(Text.literal(MoodCard.word(state.word(), state.female())).formatted(state.wordSign() < 0 ? net.minecraft.util.Formatting.RED
                     : state.wordSign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.GRAY)).append(Text.literal(" · "));
         if (mob != null && state != null && config.showBargainHud && !state.bargain().isEmpty())
             line.append(Text.literal("торг: ")).append(Text.translatable("mobtalk.bargain." + state.bargain()).formatted(state.bargainSign() < 0 ? net.minecraft.util.Formatting.RED
                     : state.bargainSign() > 0 ? net.minecraft.util.Formatting.GREEN : net.minecraft.util.Formatting.YELLOW)).append(Text.literal(" · "));
         String favor = state == null || state.favor().isEmpty() ? "" : state.favor() + " · ";
-        client.player.sendMessage(line.append(Text.literal(favor + status)), true);
+        hudLine = line.append(Text.literal(favor + status));
+        hudUntil = System.currentTimeMillis() + HUD_MILLIS;
+    }
+
+    /** Строка Mob Talk живёт своей полосой над строкой действий: очередь, отсчёт ночи и подсказки игры её не перебивают. */
+    private static final long HUD_MILLIS = 3000;
+    private volatile Text hudLine; private volatile long hudUntil;
+    private void renderHud(net.minecraft.client.gui.DrawContext context, net.minecraft.client.render.RenderTickCounter tick) {
+        Text line = hudLine;
+        long left = hudUntil - System.currentTimeMillis();
+        if (line == null || left <= 0 || client.options.hudHidden || client.player == null) return;
+        int alpha = (int) Math.min(255, left * 255 / 500);
+        if (alpha < 8) return;
+        var font = client.textRenderer;
+        // Строка действий рисуется на 72 от низа (68 и ещё 4 вверх) высотой 9: своя полоса — на полторы строки выше неё.
+        int width = context.getScaledWindowWidth(), y = context.getScaledWindowHeight() - 72 - 16;
+        int textWidth = font.getWidth(line);
+        context.fill((width - textWidth) / 2 - 3, y - 2, (width + textWidth) / 2 + 3, y + 10, (alpha * 0x60 / 255) << 24);
+        context.drawTextWithShadow(font, line, (width - textWidth) / 2, y, 0xFFFFFF | alpha << 24);
     }
     void chat(String text) { client.inGameHud.getChatHud().addMessage(Text.literal(text)); }
     private String lastNotice = ""; private long lastNoticeMillis;
@@ -859,6 +918,7 @@ public final class MobTalkClient implements ClientModInitializer {
     }
     private void applyConfig(MobTalkConfig loaded) {
         config = loaded; io.github.mobtalk.core.Tuning.apply(loaded);
+        io.github.mobtalk.client.cards.CardTableClient.settings(loaded);
         io.github.mobtalk.server.ServerConfig.adopt(loaded); // Встроенный сервер одиночки живёт по серверным полям этого файла.
         configReady = true;
         preloadWhisper(loaded);

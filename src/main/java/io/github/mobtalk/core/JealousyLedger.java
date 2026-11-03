@@ -7,6 +7,8 @@ import java.util.*;
  * доверием и памятью. Каждый метод работает под замком {@link ConversationStore}; игровой стороне остаётся найти очевидцев. */
 public final class JealousyLedger {
     private final ConversationStore store;
+    /** How much jealousy one cause must add to hurt the mood too. */
+    static final int STING = 5;
     JealousyLedger(ConversationStore store) { this.store = store; }
 
     /** Житель-пара игрока: пол, в браке ли, деревня. */
@@ -64,9 +66,12 @@ public final class JealousyLedger {
                 if (applied <= 0) continue;
                 int hearts = Math.round(applied * config.jealousyHeartsPercent / 100f);
                 r.score = ConversationStore.clamp(r.score - hearts, q.hostile());
-                ConversationStore.feel(q, r, MobState.Event.JEALOUSY, now);
+                // A chat with a neighbour heard by rumour is a pinch, not an injury: only a real cause (a gift, a favour, a night, a
+                // talk seen close up) stings the mood, so a player who talks to the village does not make the partner embittered.
+                boolean stings = applied >= STING;
+                if (stings) ConversationStore.feel(q, r, MobState.Event.JEALOUSY, now);
                 // Нет повышения ревизии: что игрок делал с другим, не отменяет реплику, которую пара говорит сейчас.
-                ConversationStore.event(q, now, memoryLine(playerName, cause, rivalName, rivalGender, PlayerIdentity.gender(config, player), detail, source,
+                if (stings) ConversationStore.event(q, now, memoryLine(playerName, cause, rivalName, rivalGender, PlayerIdentity.gender(config, player), detail, source,
                         jealousy.level(now), r.score), importance(cause));
                 notices.add(new Notice(partner.id(), applied, source, rivalName, Jealousy.deed(cause, rivalGender, PlayerIdentity.gender(config, player), detail)));
             }

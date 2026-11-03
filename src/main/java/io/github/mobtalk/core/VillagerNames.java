@@ -29,6 +29,13 @@ public final class VillagerNames {
     /** The UUID's own choice, ignoring everyone else: for a villager the store has no profile of (a name only shown in passing). */
     public static String pick(UUID id, Gender gender) { return order(id, gender).getFirst(); }
     /** Чьё это имя по спискам: мужское, женское или null (не из списков). */
+    /** The sex a name sounds: a known name's, else a Russian ending in -а/-я is a girl's, anything else a boy's (Никита is in the list). */
+    static Gender soundsLike(String name) {
+        Gender known = sexOf(name);
+        if (known != null || name == null || name.isBlank()) return known;
+        String n = name.strip().toLowerCase(java.util.Locale.ROOT);
+        return n.endsWith("а") || n.endsWith("я") ? Gender.FEMALE : Gender.MALE;
+    }
     static Gender sexOf(String name) { return name == null ? null : MALE.contains(name.strip()) ? Gender.MALE : FEMALE.contains(name.strip()) ? Gender.FEMALE : null; }
 
     /** The name for a new villager: the least worn in {@code wear} (name → weight, see {@link #wear}); ties go by the UUID's order. */

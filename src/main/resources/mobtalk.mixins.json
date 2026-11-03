@@ -9,6 +9,7 @@
     "InstantHealingMixin",
     "HorseTamingMixin",
     "BrainMovementMixin",
+    "ApathyBedMixin",
     "HeardVibrationMixin",
     "MerchantScreenHandlerAccessor",
     "MerchantInventoryAccessor",
@@ -23,6 +24,7 @@
     "FluidPlacedMixin",
     "VillagerFamilyMixin",
     "VillageTradeRefusalMixin",
+    "BartenderMenuMixin",
     "NightHoldMixin",
     "CommandFilterMixin",
     "VillageSpawnMixin",
@@ -32,9 +34,14 @@
     "VillagerRiderFacingMixin",
     "SteedCalmMixin",
     "KeepHandsMixin",
+    "CasinoBouncerPanicMixin",
     "SinglePoolElementAccessor",
     "UniqueVillagePieceMixin",
-    "BarPoolAccessor"
+    "BarPoolAccessor",
+    "RoadTripSuffocationMixin",
+    "ChunkHoldersAccessor",
+    "ChunkClaimsAtShutdownMixin",
+    "ChunkSavingAtShutdownMixin"
   ],
   "injectors": {
     "defaultRequire": 1

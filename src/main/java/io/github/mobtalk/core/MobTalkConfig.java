@@ -28,6 +28,8 @@ public final class MobTalkConfig {
     public String ttsProvider = "openrouter";
     public String ttsModel = "elevenlabs/eleven-flash-v2.5";
     public String veniceTtsModel = "tts-kokoro";
+    /** Пометки интонации «[шёпотом]», «[смеётся]» в репликах ({@link SpeechTags}); работают только с ElevenLabs v3/v4. */
+    public boolean ttsTags = true;
     /** The Venice voice every mob speaks with; Kokoro has no Russian voices, so this is an accent at best. */
     public String veniceVoice = "af_sky";
     /** Как распознаётся речь этого игрока (раздел 3 плана сервера, личная настройка): {@code auto} — локальный Whisper, если он
@@ -78,6 +80,8 @@ public final class MobTalkConfig {
     public String vision = "unusual";
     /** A line over every known creature: name, word of its state, relationship. */
     public boolean showNameTags = true;
+    /** A pixel face of the mood over every known villager, above its name; the card with the reasons opens on a key (Left Alt). */
+    public boolean labelsMoodFace = true;
     /** Трек M: жители — люди в духе MCA Reborn (кожа, лицо, одежда, волосы, гены); выключено — ванильная модель. */
     public boolean humanVillagers = true;
     /** Creatures the player talked to, gave to or helped never despawn. */
@@ -98,6 +102,8 @@ public final class MobTalkConfig {
     public boolean villageChatter = true;
     /** Villagers the player knows write to the chat in their own name: village news, or a call to come over for work. */
     public boolean villageNotices = true;
+    /** A viewer's parrot jailed in a Parrot Cages cage is village news: villagers near the cage gossip and joke about it for a game day. */
+    public boolean villageParrotJokes = true;
     /** A village is the structure its residents live in (vanilla or a village mod such as CTOV), not only a point and a radius:
      * two neighbouring villages stay apart and a large one stays whole. Off: the old rule, the nearest known village within 160 blocks. */
     public boolean villageSites = true;
@@ -118,6 +124,16 @@ public final class MobTalkConfig {
     public boolean villageTowers = true;
     /** Villages keep guards with swords and shields: stands by the bell and at the edge, a newcomer for each empty one. */
     public boolean villageGuards = true;
+    /** Roads between villages (docs/roads.md): the server finds the villages around the players, plans a straight lit road between
+     * neighbours and lays it as the chunks load; a deep cut becomes a tunnel, a high fill or a river a bridge. */
+    public boolean villageRoads = true;
+    /** Lamps along the roads: a street lamp every {@link #roadLampSpacing} blocks, lanterns on bridges and in tunnels. */
+    public boolean roadLamps = true;
+    /** The roads of a village meet at a junction beside it (a square with a shelter, a trail into the village) and never run into
+     * it; off, a road runs to the village's edge and its streets are paved between the roads' entries, as before. */
+    public boolean roadBypass = true;
+    /** Odds and ends beside the roads: pebbles, cairns, fallen logs, verst posts, chosen for the biome. */
+    public boolean roadDecor = true;
     /** Ranks of the village's guard beside the plain guard: heavy warriors in diamond with an axe, horsemen in leather on a horse. */
     public boolean villageHeavy = true, villageCavalry = true;
     /** Night bandits in the cities: a gang may come at night, ask for emeralds, fight and rob; whether they also mug villagers,
@@ -130,10 +146,22 @@ public final class MobTalkConfig {
      * clerk, the inspector — who take bribes in an envelope of emeralds; the inspector writes orders to players who build or dig in
      * the village. */
     public boolean officials = true;
+    /** Officials, stage 2: the passport and its paperwork (Shift+right-click an official), the clerk's lunch break 13:00–14:00, and
+     * no wedding without a passport. */
+    public boolean paperwork = true, paperLunch = true, passportForWedding = false;
+    /** Officials, stages 3–4: a corrupt head's dacha outside the village, heaven's mild punishments for bribe-takers, the revizor
+     * the black ledger brings, and the stream switch «особенно наглые» (a corrupt official asks more and does not hide). */
+    public boolean officialDacha = true, officialSmite = true, officialRevizor = true, officialsShameless = false, officialGossip = true, officialPapers = true;
     /** Village bars: a bar stands in each new village (worldgen, takes effect for villages generated after the change); in the
      * evening villagers gather there and talk over the village's rumours, in chat subtitles, voiced only with {@link #barVoiced};
      * the bar's jukebox is the Alice speaker when the alicespeaker mod is installed. */
-    public boolean barsInVillages = true, barEvenings = true, barVoiced = false, barAliceSpeaker = true;
+    public boolean barsInVillages = true, barEvenings = true, barVoiced = false, barAliceSpeaker = true, barDrinks = true;
+    /** The village casino (docs/casino.md): villages may build one (applies to chunks generated after the world loads); its bouncers
+     * in black throw out troublemakers and beat monsters; villagers drop in to play in the afternoon. */
+    public boolean casino = true, casinoBouncers = true, casinoVisitors = true;
+    /** The casino resort «Фортуна» (a rare standalone structure in plains, savannas and deserts: a domed round casino,
+     * a pylon sign and a pool with fountains), and the sparks that glint on the casinos' lights (a client-side look). */
+    public boolean casinoResort = true, casinoSparkles = true;
     /** Idea Б1: the villages know the god's deeds (the divine block's events) — they panic, talk and blame the sinner by name;
      * the scene in the moment (alarm bell, flight, shouts); the god alone may make an exile; the family of a villager killed by a
      * curse turns against the sinner. */
@@ -169,6 +197,11 @@ public final class MobTalkConfig {
     /** Watchtowers: one per this many residents, at most this many per village, built over this many real minutes; the archers see and
      * shoot this far (blocks), loose an arrow every this many tenths of a second, and a post empty this long (minutes) gets a newcomer. */
     public int towerResidents = 8, towerMax = 4, towerBuildMinutes = 20, archerRange = 32, archerShotTenths = 20, archerReplaceMinutes = 20;
+    /** Roads: how far around a player villages are looked for (blocks), the longest road (blocks), the step between lamps, and how
+     * far beyond the curb the trees are felled (blocks; 0 leaves them). */
+    public int roadScanRadius = 1500, roadMaxLength = 900, roadLampSpacing = 24, roadTreeStrip = 4;
+    /** Carts, wagons and horsemen going back and forth on each road (0: none). */
+    public int roadTraffic = 3;
     /** A village of this many grown residents builds large towers (two archers and two crossbowmen; 0 = never); the crossbowmen see and
      * shoot this far (blocks) and loose a bolt every this many tenths of a second. */
     public int towerLargeResidents = 16, crossbowRange = 40, crossbowShotTenths = 30;
@@ -186,12 +219,27 @@ public final class MobTalkConfig {
      * village puts its desks up by the bell: the head, then the inspector, then the clerk; 0 = none in villages), the inspector's
      * fine (emeralds), the blocks a player must change near him to get an order, and the game days to pay it. */
     public int officialHonestPercent = 20, officialPricePercent = 100, officialResidents = 8, inspectorFine = 8, inspectorBlocks = 12, inspectorDays = 1;
+    /** The passport: papers between the application and the passport, the state fee (emeralds), game days to make the passport, and
+     * seconds one person spends at the clerk's window (the queue). */
+    public int paperworkSteps = 2, passportFee = 3, passportDays = 1, queueSeconds = 12;
+    /** The dacha: points a piece (a game day in office is one point, an envelope two); heaven's chance a day (percent) for a head
+     * who took envelopes; how long the revizor's inspection lasts (seconds). */
+    public int dachaPoints = 4, smitePercent = 35, revizorSeconds = 60;
     /** The bar's evening: from and to this game hour (6 is sunrise), at most this many visitors, the chance (percent) a free villager
      * goes, and the pause between two talks at one bar (seconds). */
     public int barOpenHour = 17, barCloseHour = 22, barVisitors = 6, barVisitPercent = 70, barTalkSeconds = 40;
+    /** The casino: its weight among a village's houses (vanilla houses weigh 2 to 4 each), the bouncer's health and blow, and how many
+     * villagers may play at once per game table. */
+    public int casinoWeight = 3, bouncerHealth = 60, bouncerDamage = 8, casinoPlayersPerTable = 2;
     /** The emotional state: half-lives of an ordinary and a strong impression (minutes), and the thresholds of its axes (0–100). */
     public int stateHalfLifeMinutes = 10, stateSlowHalfLifeMinutes = 30;
     public int waryCalm = 25, waryTrust = 25, keenInterest = 75, generousMood = 65, generousTrust = 65;
+    /** Moods (percent, 0 = off): how strongly the world around moves them (rain, raids, hunger, curses, friends near), how readily
+     * a held feeling turns into a long mood (depression, dread, joy…), and how much the state shortens and colours the replies;
+     * a villager with no food seen this many real minutes is hungry. */
+    public int moodWorldPercent = 100, moodSpellPercent = 100, moodReplyPercent = 100, moodHungerMinutes = 90;
+    /** 1: a villager in apathy lies in its bed day and night (0: only its words change). */
+    public int moodApathyBed = 1;
     /** Memory: half-life of a fact (days), the floor of its freshness (percent), how many facts are kept, the silence that ends a
      * conversation (minutes), and when a mob thinks the player over (replies, importance, seconds between). */
     public int memoryHalfLifeDays = 7, memoryFloorPercent = 30, memoryMaxFacts = 60, conversationSilenceMinutes = 3;
@@ -203,7 +251,7 @@ public final class MobTalkConfig {
     public int heartsFriend = 40, heartsDating = 70, heartsMarriage = 90;
     /** Ревность (трек J): сила поводов — разговор, сон рядом, услуга, подарок (база, плюс ценность подарка), доля силы по слуху и
      * в браке (проценты), какая доля ревности снимается с сердечек (процент), полураспад (минуты) и сколько гасит разговор с ревнующим. */
-    public int jealousyTalk = 3, jealousySleep = 20, jealousyFavor = 8, jealousyGift = 12, jealousyRumorPercent = 50, jealousyMarriedPercent = 150;
+    public int jealousyTalk = 10, jealousySleep = 20, jealousyFavor = 8, jealousyGift = 12, jealousyRumorPercent = 50, jealousyMarriedPercent = 150;
     public int jealousyHeartsPercent = 30, jealousyHalfLifeMinutes = 60, jealousyAttention = 4;
     /** Соперники за одно сердце (П3): до помолвки житель видит всех ухажёров и выбирает лучшего; можно ли отбить пару, испытания,
      * выбор сценой у колокола (иначе сразу при кольце). Окно интереса (часы без романтического жеста), сколько ухажёров на одного
@@ -225,6 +273,26 @@ public final class MobTalkConfig {
     public boolean weddingCeremony = true;
     public int weddingVowSeconds = 60, weddingVowWaitSeconds = 60, weddingGatherSeconds = 60, weddingGuests = 16, weddingWishes = 12, weddingRange = 48;
     public int weddingScenePercent = 30, weddingAttireDays = 1;
+    /** Исповедь у священника (Б4, нужен Божественный блок): включена ли, исповедуют ли только настоятели храмов, радиус тайны
+     * (блоки), откат между полными исповедями (минуты), сколько заходов слушает батюшка, срок епитимьи (игровые дни), сколько
+     * секунд пишется исповедь голосом, выключенные виды епитимьи (id через запятую), писать ли слова исповеди в историю админки и
+     * слышна ли всем исповедь стримера. Личные: церковнославянский текст с переводом и строка епитимьи в HUD. */
+    public boolean confession = true, confessionAbbotsOnly = false, confessionHistoryText = false, confessionStreamerPublic = false;
+    public int confessionSecrecyRange = 12, confessionCooldownMinutes = 20, confessionRounds = 3, confessionPenanceDays = 2, confessionSpeakSeconds = 60;
+    public String confessionPenancesOff = "";
+    public boolean confessionSlavonic = true, confessionHud = true;
+    /** Игра в 21 с жителем (docs/cards-21.md): включена, правила ({@code OCHKO} или {@code BLACKJACK}), ставки предметами и сделками,
+     * жульничество жителей-хитрецов; ставка на руку от и до, проигрыш игрока за игровой день, кошелёк жителя (у новичка, +4 за уровень)
+     * и его прирост в игровой день, мест за столом, секунд на ход. */
+    public boolean cards = true, cardsItemStakes = true, cardsCheating = true;
+    public String cardsVariant = "OCHKO";
+    public int cardsMinBet = 1, cardsMaxBet = 16, cardsDailyLoss = 64, cardsPurseStart = 8, cardsPursePerDay = 2, cardsSeats = 4, cardsTurnSeconds = 30;
+    /** Стол глазами игрока (личное): житель сам зовёт сыграть, реплики жителя ({@code key} — к важному, {@code round} — каждую раздачу,
+     * {@code never} — молчит), анимации ({@code normal}, {@code fast}, {@code off}), громкость звуков стола в процентах, подсказка
+     * «сколько очков у руки и что выгоднее». */
+    public boolean tableInvite = true, tableHint = false;
+    public String tableLines = "key", tableSpeed = "normal";
+    public int tableVolume = 100;
     /** Ребёнок в семье (трек N): беременность как у людей (выключено — малыш через игровой день, как раньше), живот на фигурке,
      * строка под именем и мягкие затемнения особой ночи и родов. Длина срока (игровые дни), шанс зачатия за обычную ночь вместе
      * и за особую (от и до по уюту дома, проценты), сердечки за особую ночь и сколько секунд тишины в кровати её заканчивают. */
@@ -295,7 +363,7 @@ public final class MobTalkConfig {
         copy.llmProvider = llmProvider;
         copy.llmModel = llmModel;
         copy.veniceModel = veniceModel;
-        copy.ttsProvider = ttsProvider; copy.ttsModel = ttsModel; copy.veniceTtsModel = veniceTtsModel; copy.veniceVoice = veniceVoice;
+        copy.ttsProvider = ttsProvider; copy.ttsModel = ttsModel; copy.veniceTtsModel = veniceTtsModel; copy.veniceVoice = veniceVoice; copy.ttsTags = ttsTags;
         copy.reasoningEffort = reasoningEffort;
         copy.backgroundModel = backgroundModel;
         copy.sttPath = sttPath; copy.sttModel = sttModel; copy.sttFallbackModel = sttFallbackModel; copy.sttServer = sttServer; copy.sttServerLocal = sttServerLocal;
@@ -328,19 +396,25 @@ public final class MobTalkConfig {
         copy.firstTokenSeconds = firstTokenSeconds;
         copy.maxDistance = maxDistance;
         copy.witnessReplies = witnessReplies;
-        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.humanVillagers = humanVillagers; copy.keepAcquainted = keepAcquainted;
+        copy.showStateHud = showStateHud; copy.vision = vision; copy.showNameTags = showNameTags; copy.labelsMoodFace = labelsMoodFace; copy.humanVillagers = humanVillagers; copy.keepAcquainted = keepAcquainted;
         copy.showBargainHud = showBargainHud;
         copy.socialBehavior = socialBehavior; copy.socialActionsPerMinute = socialActionsPerMinute;
         copy.initiative = initiative; copy.initiativesPerMinute = initiativesPerMinute; copy.giftsFirst = giftsFirst; copy.decider = decider;
-        copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites;
+        copy.villageChatter = villageChatter; copy.villageNotices = villageNotices; copy.villageSites = villageSites; copy.villageParrotJokes = villageParrotJokes;
         copy.bandits = bandits; copy.banditsRobVillagers = banditsRobVillagers; copy.banditsInVillages = banditsInVillages; copy.banditHaggle = banditHaggle; copy.banditRumors = banditRumors; copy.banditFearLight = banditFearLight;
-        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker;
+        copy.villageDefense = villageDefense; copy.villageNoSpawn = villageNoSpawn; copy.alarmAgainstPlayers = alarmAgainstPlayers; copy.alarmChat = alarmChat; copy.alarmSound = alarmSound; copy.villageNoConversion = villageNoConversion; copy.villageTowers = villageTowers; copy.villageGuards = villageGuards; copy.villageRoads = villageRoads; copy.roadLamps = roadLamps; copy.roadBypass = roadBypass; copy.roadDecor = roadDecor; copy.villageHeavy = villageHeavy; copy.villageCavalry = villageCavalry; copy.officials = officials; copy.paperwork = paperwork; copy.paperLunch = paperLunch; copy.passportForWedding = passportForWedding; copy.officialDacha = officialDacha; copy.officialSmite = officialSmite; copy.officialRevizor = officialRevizor; copy.officialsShameless = officialsShameless; copy.officialGossip = officialGossip; copy.officialPapers = officialPapers; copy.barsInVillages = barsInVillages; copy.barEvenings = barEvenings; copy.barVoiced = barVoiced; copy.barAliceSpeaker = barAliceSpeaker; copy.barDrinks = barDrinks;
+        copy.casino = casino; copy.casinoBouncers = casinoBouncers; copy.casinoVisitors = casinoVisitors; copy.casinoResort = casinoResort; copy.casinoSparkles = casinoSparkles;
         copy.divineTidings = divineTidings; copy.divinePanic = divinePanic; copy.divineMayExile = divineMayExile; copy.divineMourners = divineMourners;
         copy.defaultVoice = defaultVoice;
         copy.socialLayer = socialLayer; copy.playerGender = playerGender;
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
         copy.rivals = rivals; copy.rivalSteal = rivalSteal; copy.rivalTrials = rivalTrials; copy.rivalBellScene = rivalBellScene; copy.rivalHud = rivalHud;
+        copy.confession = confession; copy.confessionAbbotsOnly = confessionAbbotsOnly; copy.confessionHistoryText = confessionHistoryText;
+        copy.confessionStreamerPublic = confessionStreamerPublic; copy.confessionPenancesOff = confessionPenancesOff;
+        copy.confessionSlavonic = confessionSlavonic; copy.confessionHud = confessionHud;
+        copy.cards = cards; copy.cardsItemStakes = cardsItemStakes; copy.cardsCheating = cardsCheating; copy.cardsVariant = cardsVariant;
+        copy.tableInvite = tableInvite; copy.tableHint = tableHint; copy.tableLines = tableLines; copy.tableSpeed = tableSpeed;
         copy.pregnancy = pregnancy; copy.pregnancyBelly = pregnancyBelly; copy.pregnancyStatus = pregnancyStatus; copy.familyFade = familyFade;
         Tunables.copy(this, copy);
         copy.commandLevels = commandLevels == null ? new LinkedHashMap<>() : new LinkedHashMap<>(commandLevels);
@@ -405,6 +479,7 @@ public final class MobTalkConfig {
         config.schemaVersion = 4;
         config.whisperHotwords = TextBounds.characters(config.whisperHotwords, 2000);
         config.commonPrompt = config.commonPrompt == null ? "" : config.commonPrompt.strip();
+        config.confessionPenancesOff = String.join(",", Confession.off(config.confessionPenancesOff));
         config.rudeness = Math.max(0, Math.min(3, config.rudeness));
         if (config.speciesOverrides == null) config.speciesOverrides = new LinkedHashMap<>();
         if (config.commandLevels == null) config.commandLevels = new LinkedHashMap<>();
@@ -420,6 +495,10 @@ public final class MobTalkConfig {
         config.overlayLayout = "full".equals(config.overlayLayout) ? "full" : "card";
         config.streamOverlayAudience = "all".equals(config.streamOverlayAudience) ? "all" : "streamer";
         if (config.overlayPort < 1024 || config.overlayPort > 65535) config.overlayPort = 8790;
+        config.cardsVariant = io.github.mobtalk.core.cards.Variant.of(config.cardsVariant).name();
+        config.cardsMaxBet = Math.max(config.cardsMinBet, config.cardsMaxBet);
+        config.tableLines = config.tableLines != null && java.util.List.of("key", "round", "never").contains(config.tableLines) ? config.tableLines : "key";
+        config.tableSpeed = config.tableSpeed != null && java.util.List.of("normal", "fast", "off").contains(config.tableSpeed) ? config.tableSpeed : "normal";
         MobTalkConfig defaults = new MobTalkConfig();
         config.llmModel = textOrDefault(config.llmModel, defaults.llmModel);
         config.veniceModel = textOrDefault(config.veniceModel, defaults.veniceModel);

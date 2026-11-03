@@ -7,7 +7,12 @@ import java.util.*;
 import net.minecraft.block.Block;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.JukeboxBlockEntity;
+import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.client.option.Perspective;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.item.ItemStack;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.util.Hand;
 import net.minecraft.client.util.ScreenshotRecorder;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.passive.VillagerEntity;
@@ -39,6 +44,10 @@ final class SelfTestBar {
     private Box area() { return new Box(bar(6, 2, 5)).expand(30, 12, 30); }
     private List<VillagerEntity> villagers() { return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, area(), v -> v.isAlive() && v.getCommandTags().contains(TAG))); }
     private long seated() { return villagers().stream().filter(v -> v.getVehicle() instanceof BarSeatEntity).count(); }
+    /** Whoever stands behind the counter: the bartender may be any villager from around, not only the test's eight. */
+    private VillagerEntity bartender(BlockPos stand) {
+        return onServer(() -> world().getEntitiesByClass(VillagerEntity.class, new Box(stand).expand(1.5), v -> v.isAlive() && !v.hasVehicle()).stream().findFirst().orElse(null));
+    }
     private boolean is(BlockPos pos, Block block) { return onServer(() -> world().getBlockState(pos).isOf(block)); }
 
     void run(Runnable then) {
@@ -134,7 +143,7 @@ final class SelfTestBar {
             test.check(seated() >= 5, "at least five guests seated (" + seated() + ")");
             BlockPos stand = onServer(() -> test.bridge().barStand(bar(6, 2, 4)));
             test.check(stand != null && stand.equals(bar(5, 2, 2)), "the bartender's place is behind the middle of the counter (" + stand + ")");
-            test.await("the bartender behind the counter", 90, () -> stand != null && villagers().stream().anyMatch(v -> v.getBlockPos().getSquaredDistance(stand) <= 2), () -> {
+            test.await("the bartender behind the counter", 90, () -> stand != null && bartender(stand) != null, () -> {
                 test.check(onServer(() -> world().getBlockEntity(bar(10, 2, 1)) instanceof JukeboxBlockEntity box && !box.getStack().isEmpty() && box.getManager().isPlaying()),
                         "the jukebox plays a disc");
                 test.log("bar status: " + onServer(() -> test.bridge().barStatus(world())));
@@ -147,10 +156,52 @@ final class SelfTestBar {
                             test.owner.config().humanVillagers = false;
                             test.await("pause: the vanilla look", 2, () -> false, () -> shot("mobtalk-bar-evening-sitters-vanilla.png", () -> {
                                 test.owner.config().humanVillagers = true;
-                                talk();
+                                drinks(stand);
                             }));
                         });
                     });
+                });
+            });
+        });
+    }
+
+    /** At the counter: a right click on the bartender opens his drinks menu, and a mug of ale gives strength and a spinning head. */
+    private void drinks(BlockPos stand) {
+        test.command("tp " + name() + " " + at(5, 2, 4) + " 180 10");
+        test.command("give " + name() + " minecraft:emerald 6");
+        test.await("pause: at the counter", 2, () -> false, () -> {
+            onServer(() -> {
+                ServerPlayerEntity player = test.server().getPlayerManager().getPlayerList().getFirst();
+                VillagerEntity bartender = stand == null ? null : bartender(stand);
+                if (bartender != null) bartender.interact(player, Hand.MAIN_HAND);
+                return null;
+            });
+            test.await("the bartender's menu opens", 10, () -> test.owner.client.currentScreen instanceof MerchantScreen, () -> {
+                var offers = test.owner.client.currentScreen instanceof MerchantScreen menu ? menu.getScreenHandler().getRecipes() : new net.minecraft.village.TradeOfferList();
+                test.check(offers.size() == 4 && offers.get(0).getSellItem().isOf(BarContent.ALE) && offers.get(3).getSellItem().isOf(BarContent.MEAD),
+                        "the bartender sells four drinks (" + offers.size() + ")");
+                shot("mobtalk-bar-drinks-menu.png", () -> {
+                    test.owner.client.setScreen(null);
+                    test.owner.client.player.closeHandledScreen();
+                    boolean[] effects = onServer(() -> {
+                        ServerPlayerEntity player = test.server().getPlayerManager().getPlayerList().getFirst();
+                        player.clearStatusEffects();
+                        ItemStack ale = new ItemStack(BarContent.ALE);
+                        ale.finishUsing(world(), player);
+                        int first = player.getStatusEffect(StatusEffects.NAUSEA) == null ? 0 : player.getStatusEffect(StatusEffects.NAUSEA).getDuration();
+                        new ItemStack(BarContent.ALE).finishUsing(world(), player);
+                        int second = player.getStatusEffect(StatusEffects.NAUSEA) == null ? 0 : player.getStatusEffect(StatusEffects.NAUSEA).getDuration();
+                        boolean strong = player.hasStatusEffect(StatusEffects.STRENGTH);
+                        player.clearStatusEffects();
+                        new ItemStack(BarContent.KVASS).finishUsing(world(), player);
+                        boolean kvass = player.hasStatusEffect(StatusEffects.SPEED) && !player.hasStatusEffect(StatusEffects.NAUSEA);
+                        player.clearStatusEffects();
+                        return new boolean[] { strong, first > 0 && second > first, kvass };
+                    });
+                    test.check(effects[0], "a mug of ale gives strength");
+                    test.check(effects[1], "each strong drink spins the head longer");
+                    test.check(effects[2], "kvass gives speed and no spinning");
+                    talk();
                 });
             });
         });

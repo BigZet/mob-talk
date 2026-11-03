@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.Initiative;
 import io.github.mobtalk.core.MobState;
@@ -98,7 +99,7 @@ final class OfficialsController {
     }
 
     /** The officials living in the zone, by rank. */
-    private Map<Officialdom.Rank, List<VillagerEntity>> officials(ServerWorld world, VillageDefenseController.Zone zone) {
+    Map<Officialdom.Rank, List<VillagerEntity>> officials(ServerWorld world, VillageDefenseController.Zone zone) {
         Map<Officialdom.Rank, List<VillagerEntity>> out = new EnumMap<>(Officialdom.Rank.class);
         for (VillagerEntity v : world.getEntitiesByClass(VillagerEntity.class, zone.box(), v -> v.isAlive() && !v.isBaby() && !DefenseContent.traveller(v))) {
             Officialdom.Rank rank = OfficialContent.rank(v);
@@ -179,13 +180,13 @@ final class OfficialsController {
         int emeralds = OfficialContent.emeralds(stack);
         VillageDefenseController.Zone zone = bridge.defense.zoneAt(world, official.getBlockPos());
         String village = zone == null ? "" : zone.key();
-        long day = Math.floorDiv(world.getTimeOfDay(), 24_000L), now = System.currentTimeMillis();
+        long day = Math.floorDiv(world.getTimeOfDay(), 24_000L), now = MobClock.now();
         Officialdom.Fine fine = rank == Officialdom.Rank.INSPECTOR ? bridge.memory.officialFine(village, player.getUuid()) : null;
         List<VillagerEntity> witnesses = world.getEntitiesByClass(VillagerEntity.class, official.getBoundingBox().expand(WITNESS),
                 v -> v != official && v.isAlive() && !v.isBaby() && OfficialContent.rank(v) == null && !DefenseContent.traveller(v) && (v.canSee(player) || v.canSee(official)));
         int relationship = bridge.memory.relationship(official.getUuid(), player.getUuid());
         Officialdom.Verdict verdict = Officialdom.judge(rank, official.getUuid(), emeralds, witnesses.size(), relationship,
-                bridge.config.officialHonestPercent, bridge.config.officialPricePercent, fine == null ? 0 : fine.amount());
+                bridge.config.officialHonestPercent, bridge.config.officialPricePercent, fine == null ? 0 : fine.amount(), bridge.config.officialsShameless);
         String name = name(official), playerName = MobGameBridge.playerName(player);
         official.getLookControl().lookAt(player, 30f, 30f);
         if (verdict.keeps()) {
@@ -199,9 +200,9 @@ final class OfficialsController {
         bridge.memory.recordBribe(official.getUuid(), MobGameBridge.type(official), official.getName().getString(), player.getUuid(), playerName,
                 verdict.relationshipDelta(), memoryLine(verdict, emeralds), now);
         Text chat = switch (verdict.outcome()) {
-            case TAKEN -> { bridge.memory.officialTook(official.getUuid()); yield serve(world, player, official, rank, zone, village, fine, day, name); }
+            case TAKEN -> { bridge.memory.officialTook(official.getUuid()); bridge.graft.took(world, player, official, rank); yield serve(world, player, official, rank, zone, village, fine, day, name); }
             case PAID -> { bridge.memory.officialClose(village, player.getUuid()); yield Text.translatable("mobtalk.official.paid", name, fine.number()); }
-            case KEPT -> { bridge.memory.officialTook(official.getUuid()); yield Text.translatable("mobtalk.official.kept", name, emeralds); }
+            case KEPT -> { bridge.memory.officialTook(official.getUuid()); bridge.graft.took(world, player, official, rank); yield Text.translatable("mobtalk.official.kept", name, emeralds); }
             case TOO_LITTLE -> Text.translatable("mobtalk.official.too_little", name);
             case NOT_HERE -> Text.translatable("mobtalk.official.not_here", name);
             case EMPTY -> Text.translatable("mobtalk.official.empty", name);
@@ -236,6 +237,7 @@ final class OfficialsController {
                 yield Text.translatable("mobtalk.official.taken.favour", name);
             }
             case CLERK -> {
+                if (bridge.passports.rush(world, player, official, zone)) yield Text.translatable("mobtalk.official.taken.rush", name);
                 player.getInventory().offerOrDrop(OfficialContent.certificate(MobGameBridge.playerName(player), name, day));
                 yield Text.translatable("mobtalk.official.taken.clerk", name);
             }
@@ -293,7 +295,7 @@ final class OfficialsController {
         String own = ownName(inspector);
         player.sendMessage((own == null ? Text.translatable("mobtalk.official.order.unnamed", fine.number(), reason, fine.amount(), fine.dueDay())
                 : Text.translatable("mobtalk.official.order", own, fine.number(), reason, fine.amount(), fine.dueDay())).formatted(Formatting.GOLD), false);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         bridge.memory.recordEvent(inspector.getUuid(), MobGameBridge.type(inspector), inspector.getName().getString(),
                 "Ты выписал игроку " + MobGameBridge.playerName(player) + " предписание №" + fine.number() + ": " + reason + ", штраф " + fine.amount() + " изумр.", now);
         bridge.initiative.raise(new Initiative.Cue(inspector.getUuid(), name, Initiative.Trigger.GIFT,
@@ -325,18 +327,45 @@ final class OfficialsController {
         return fine == null ? null : fine.data();
     }
 
+    /** What a plain villager knows of its village's officials, for the prompt (Officialdom.gossip): each one's rank, name, whether
+     * the village thinks it honest, envelopes it took (the village hears of them), how far the head's dacha has grown, heaven's
+     * strikes, the revizor's verdict. Null for an official, a child, or a village without officials. */
+    List<Map<String, Object>> gossipFor(VillagerEntity villager) {
+        if (!enabled() || !bridge.config.officialGossip || villager.isBaby() || OfficialContent.rank(villager) != null || !(villager.getWorld() instanceof ServerWorld world)) return null;
+        VillageDefenseController.Zone zone = bridge.defense.zoneAt(world, villager.getBlockPos());
+        if (zone == null) return null;
+        List<Map<String, Object>> out = new ArrayList<>();
+        Map<UUID, io.github.mobtalk.core.Graft.Estate> estates = new HashMap<>();
+        for (io.github.mobtalk.core.Graft.Estate e : bridge.memory.estates()) if (e.head() != null) estates.put(e.head(), e);
+        for (Map.Entry<Officialdom.Rank, List<VillagerEntity>> e : officials(world, zone).entrySet())
+            for (VillagerEntity official : e.getValue()) {
+                Map<String, Object> one = new LinkedHashMap<>();
+                one.put("rank", e.getKey().name());
+                one.put("name", name(official));
+                one.put("honest", Officialdom.honest(official.getUuid(), bridge.config.officialHonestPercent));
+                one.put("taken", bridge.memory.officialTaken(official.getUuid()));
+                io.github.mobtalk.core.Graft.Estate estate = estates.get(official.getUuid());
+                if (estate != null) { one.put("dacha", estate.built()); one.put("dung", estate.dung()); one.put("smitten", estate.smiteDay() >= 0); }
+                out.add(one);
+            }
+        // A head the revizor removed is a nitwit now, but the village remembers.
+        for (io.github.mobtalk.core.Graft.Estate e : estates.values())
+            if (e.confiscated() && zone.key().equals(e.village())) out.add(new LinkedHashMap<>(Map.of("rank", "REMOVED", "name", e.headName(), "dacha", e.built())));
+        return out.isEmpty() ? null : out;
+    }
+
     private void announce(ServerWorld world, VillageDefenseController.Zone zone, Text text) {
         double range = bridge.config.alarmNoticeRange;
         for (ServerPlayerEntity player : world.getPlayers())
             if (player.getBlockPos().getSquaredDistance(zone.center()) <= range * range) player.sendMessage(text.copy().formatted(Formatting.GRAY), false);
     }
-    private String name(VillagerEntity villager) {
+    String name(VillagerEntity villager) {
         String name = bridge.memory.displayName(villager.getUuid());
         return name == null || name.isBlank() ? villager.getName().getString() : name;
     }
 
     /** «инспектор Пётр», or just «инспектор» for an unnamed one (whose name would only repeat the rank). */
-    private Text titled(VillagerEntity villager, Officialdom.Rank rank) {
+    Text titled(VillagerEntity villager, Officialdom.Rank rank) {
         String name = ownName(villager);
         Text title = Text.translatable("mobtalk.official.rank." + rank.path);
         return name == null ? title : title.copy().append(" " + name);

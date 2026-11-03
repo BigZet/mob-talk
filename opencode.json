@@ -1,0 +1,39 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "instructions": [
+    "docs/agents/project-rules.md",
+    "docs/agents/coordination.md"
+  ],
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": ["npx", "-y", "@upstash/context7-mcp"],
+      "enabled": true
+    },
+    "serena": {
+      "type": "local",
+      "command": ["uvx", "--from", "git+https://github.com/oraios/serena", "serena", "start-mcp-server", "--context", "agent", "--project", "."],
+      "enabled": false
+    },
+    "playwright": {
+      "type": "local",
+      "command": ["npx", "-y", "@playwright/mcp@latest"],
+      "enabled": false
+    }
+  },
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "git push*": "ask",
+      "git rebase*": "ask",
+      "git reset --hard*": "ask",
+      "git checkout main*": "ask",
+      "gh release*": "deny",
+      "rm -rf*": "ask",
+      "Remove-Item*-Recurse*": "ask",
+      "taskkill*": "ask",
+      "Stop-Process*": "ask"
+    },
+    "external_directory": "ask"
+  }
+}

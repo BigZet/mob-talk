@@ -63,6 +63,20 @@ class VillageRumorsTest {
     }
 
     // A rumour weighs its importance when born, half of it after two and a half days, nothing on the fifth, when it is forgotten.
+    @Test void gameNewsLivesOneDayAndEveryHearerKnowsIt() {
+        VillageRumors rumors = new VillageRumors();
+        long now = 1_000_000;
+        rumors.news(VILLAGE, "cage-x-in", "стример посадил в клетку попугая зрителя Кеша", 3, VillageRumors.DAY_MILLIS, List.of(ladko, aksinya), now);
+        assertEquals(1, rumors.heardBy(ladko, VILLAGE, now).size());
+        assertEquals(1, rumors.heardBy(aksinya, VILLAGE, now).size());
+        assertNotNull(rumors.untold(VILLAGE, ladko, prokhor, now), "small talk can pass the news on");
+        assertTrue(rumors.village(VILLAGE, now + VillageRumors.DAY_MILLIS / 2).getFirst().weight() < 3);
+        assertTrue(rumors.village(VILLAGE, now + VillageRumors.DAY_MILLIS).isEmpty(), "forgotten after one game day, not five");
+        rumors.news(VILLAGE, "cage-x-in", "снова", 3, VillageRumors.DAY_MILLIS, List.of(), now);
+        rumors.dropNews("cage-x-");
+        assertTrue(rumors.village(VILLAGE, now).isEmpty(), "the release drops the jail news");
+    }
+
     @Test void rumoursLoseWeightAndAreForgotten() {
         VillageRumors rumors = new VillageRumors();
         rumors.add(VILLAGE, List.of(rumor("Стив сломал колокол", "Ладко", 4, -1)), ids, 0);

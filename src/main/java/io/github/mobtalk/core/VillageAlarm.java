@@ -136,6 +136,8 @@ public final class VillageAlarm {
     }
 
     public void clear() { alarms.clear(); }
+    /** Ends one village's alarm at once (the /alarm clear command); the ended alarm, or null when it had none. */
+    public Alarm end(String village) { return village == null ? null : alarms.remove(village); }
 
     private static Change raise(Alarm alarm, Level level, String cause, boolean fresh) {
         if (level.ordinal() <= alarm.level.ordinal()) return fresh ? Change.RAISED : Change.NONE;

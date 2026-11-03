@@ -50,7 +50,7 @@ final class MobSocialController {
     /** One creature struck another (vanilla fights: zombie and villager, wolf and sheep): enemies, when both are known. */
     void attacked(MobEntity attacker, MobEntity victim) {
         if (!bridge.config.enabled || attacker == victim || !bridge.memory.known(attacker.getUuid()) || !bridge.memory.known(victim.getUuid())) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         bridge.memory.updateRelations(r -> r.attacked(attacker.getUuid(), name(attacker), type(attacker), victim.getUuid(), name(victim), type(victim), now));
     }
     /** A creature died: every known mob that could see it and knew it mourns, with the name, whoever the killer was. */
@@ -59,7 +59,7 @@ final class MobSocialController {
         UUID dead = victim.getUuid();
         String deadName = name(victim), deadType = type(victim);
         boolean acquainted = bridge.memory.acquainted(dead);
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (MobEntity witness : world.getEntitiesByClass(MobEntity.class, victim.getBoundingBox().expand(bridge.config.witnessSightRange),
                 other -> other != victim && other.isAlive() && !other.isRemoved() && bridge.memory.known(other.getUuid()) && other.canSee(victim)))
             bridge.memory.updateRelations(r -> r.mourn(witness.getUuid(), dead, deadName, deadType, acquainted, now));
@@ -67,7 +67,7 @@ final class MobSocialController {
     /** The player talks to {@code mob}: the known creatures around the pair get acquainted with the speaker. */
     void conversation(MobEntity mob, MobSnapshot snapshot) {
         if (!bridge.config.enabled || !(mob.getWorld() instanceof ServerWorld world)) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ObservedEntity entity : snapshot.observedEntities()) {
             if (!entity.visible() || !SocialRules.together(entity.distance()) || !bridge.memory.known(entity.id())) continue;
             if (!(world.getEntity(entity.id()) instanceof MobEntity other) || hostile(other) != hostile(mob)) continue;
@@ -83,7 +83,7 @@ final class MobSocialController {
         if (!enabled()) { if (!visits.isEmpty()) visits.clear(); return; }
         tickVisits(world);
         if (world.getTime() % PERIOD != PHASE) return;
-        long now = System.currentTimeMillis(), time = world.getTime();
+        long now = MobClock.now(), time = world.getTime();
         double range = bridge.config.socialPlayerRange;
         Map<UUID, MobEntity> around = new LinkedHashMap<>();
         Map<UUID, Double> toPlayer = new HashMap<>();
@@ -180,14 +180,14 @@ final class MobSocialController {
                 } else if (over || time >= visit.deadline) {
                     // Could not get there: the loss still counts as shared, so nobody keeps trying forever.
                     visits.remove(visit.mob.getUuid());
-                    long now = System.currentTimeMillis();
+                    long now = MobClock.now();
                     bridge.memory.updateRelations(r -> r.consoled(visit.mourner.getUuid(), visit.dead, now));
                 } else if (time % 20 == 0) walkTo(visit.mob, visit.mourner, 0.9F, 2);
                 continue;
             }
             if (over || time >= visit.until) {
                 visits.remove(visit.mob.getUuid());
-                long now = System.currentTimeMillis();
+                long now = MobClock.now();
                 bridge.memory.updateRelations(r -> r.consoled(visit.mourner.getUuid(), visit.dead, now));
                 continue;
             }

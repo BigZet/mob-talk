@@ -1,0 +1,213 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "bark": "mobtalk:block/casino/palm_bark",
+    "particle": "mobtalk:block/casino/palm_bark"
+  },
+  "elements": [
+    {
+      "from": [
+        8.0,
+        0,
+        5
+      ],
+      "to": [
+        14.0,
+        16,
+        11
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bark",
+          "uv": [
+            2.0,
+            0,
+            8.0,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#bark",
+          "uv": [
+            8.0,
+            0,
+            14.0,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#bark",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#bark",
+          "uv": [
+            5,
+            0,
+            11,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#bark",
+          "uv": [
+            8.0,
+            5,
+            14.0,
+            11
+          ]
+        },
+        "down": {
+          "texture": "#bark",
+          "uv": [
+            8.0,
+            5,
+            14.0,
+            11
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.6,
+        0,
+        4.6
+      ],
+      "to": [
+        14.4,
+        1.5,
+        11.4
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bark",
+          "uv": [
+            1.6,
+            14.5,
+            8.4,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#bark",
+          "uv": [
+            7.6,
+            14.5,
+            14.4,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#bark",
+          "uv": [
+            4.6,
+            14.5,
+            11.4,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#bark",
+          "uv": [
+            4.6,
+            14.5,
+            11.4,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#bark",
+          "uv": [
+            7.6,
+            4.6,
+            14.4,
+            11.4
+          ]
+        },
+        "down": {
+          "texture": "#bark",
+          "uv": [
+            7.6,
+            4.6,
+            14.4,
+            11.4
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.6,
+        8,
+        4.6
+      ],
+      "to": [
+        14.4,
+        9.5,
+        11.4
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bark",
+          "uv": [
+            1.6,
+            6.5,
+            8.4,
+            8
+          ]
+        },
+        "south": {
+          "texture": "#bark",
+          "uv": [
+            7.6,
+            6.5,
+            14.4,
+            8
+          ]
+        },
+        "east": {
+          "texture": "#bark",
+          "uv": [
+            4.6,
+            6.5,
+            11.4,
+            8
+          ]
+        },
+        "west": {
+          "texture": "#bark",
+          "uv": [
+            4.6,
+            6.5,
+            11.4,
+            8
+          ]
+        },
+        "up": {
+          "texture": "#bark",
+          "uv": [
+            7.6,
+            4.6,
+            14.4,
+            11.4
+          ]
+        },
+        "down": {
+          "texture": "#bark",
+          "uv": [
+            7.6,
+            4.6,
+            14.4,
+            11.4
+          ]
+        }
+      }
+    }
+  ]
+}

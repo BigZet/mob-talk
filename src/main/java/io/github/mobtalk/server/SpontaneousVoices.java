@@ -1,5 +1,6 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.ConversationEngine;
 import io.github.mobtalk.core.ConversationStore;
 import io.github.mobtalk.core.DecisionState;
@@ -66,7 +67,7 @@ final class SpontaneousVoices {
 
     private void initiative() {
         if (!bridge.config().enabled) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (var it = cues.entrySet().iterator(); it.hasNext(); ) {
             var entry = it.next();
             Long since = taken.get(entry.getKey());
@@ -89,7 +90,7 @@ final class SpontaneousVoices {
         nearest(cue.mob()).whenComplete((found, error) -> service.onServer(() -> {
             if (error != null || found == null) { bridge.refundInitiative(taking); return; }
             Session session = found.session();
-            cues.put(taking.mob(), taking); owners.put(taking.mob(), session); taken.put(taking.mob(), System.currentTimeMillis());
+            cues.put(taking.mob(), taking); owners.put(taking.mob(), session); taken.put(taking.mob(), MobClock.now());
             LOGGER.info("Mob Talk initiative: {} takes the floor ({}) for {}", taking.mobName(), taking.trigger(), session.name);
             UUID player = session.player;
             boolean owed = taking.trigger() == Initiative.Trigger.GIFT;
@@ -196,7 +197,7 @@ final class SpontaneousVoices {
         announce();
         boolean floorBusy = writing || anyBusy();
         if (floorBusy && bridge.talkWaiting()) {
-            long now = System.currentTimeMillis();
+            long now = MobClock.now();
             if (waitingSince == 0) waitingSince = now;
         }
         if (!floorBusy) write();
@@ -246,11 +247,11 @@ final class SpontaneousVoices {
                 recorded = true;
                 LOGGER.info("Mob Talk: болтовня {} и {}, деревня {}", input.a().name(), input.b().name(), input.villageKey());
                 VillageChatter.Input talk = input;
-                bridge.memory().recordChatter(talk, lines.stream().map(l -> new VillageChatter.Line(l.speaker().equals(talk.a().id()) ? 0 : 1, l.text())).toList(), System.currentTimeMillis());
+                bridge.memory().recordChatter(talk, lines.stream().map(l -> new VillageChatter.Line(l.speaker().equals(talk.a().id()) ? 0 : 1, l.text())).toList(), MobClock.now());
             }
             service.playOverheard(session, speaker, line.name(), line.text(), line.audio(), range());
             // A line without a voice (the bar's talk, a failed voice) is read, not heard: the next waits as long as reading takes.
-            if (line.audio() == null) session.floorUntil = Math.max(session.floorUntil, System.currentTimeMillis() + 1800 + 55L * line.text().length());
+            if (line.audio() == null) session.floorUntil = Math.max(session.floorUntil, MobClock.now() + 1800 + 55L * line.text().length());
         }));
     }
 
@@ -271,7 +272,7 @@ final class SpontaneousVoices {
             service.onServer(() -> {
                 announcing = false;
                 if (written.isBlank()) return;
-                bridge.memory().recordNotice(cue.input(), written, System.currentTimeMillis());
+                bridge.memory().recordNotice(cue.input(), written, MobClock.now());
                 Session session = service.sessions().stream().filter(s -> s.player.equals(cue.input().player())).findFirst().orElse(null);
                 if (session == null) session = service.sessions().stream().findFirst().orElse(null);
                 if (session == null) return;

@@ -1,12 +1,7 @@
 {
   "mob_speech": {
     "subtitle": "subtitle.mobtalk.mob_speech",
-    "sounds": [
-      {
-        "name": "fabric-sound-api-v1:empty",
-        "stream": true
-      }
-    ]
+    "sounds": [ { "name": "fabric-sound-api-v1:empty", "stream": true } ]
   },
   "bandit_whistle": {
     "subtitle": "subtitle.mobtalk.bandit_whistle",
@@ -20,5 +15,9 @@
         "attenuation_distance": 48
       }
     ]
-  }
+  },
+  "cards.deal": { "sounds": [ "mobtalk:cards/deal" ] },
+  "cards.flip": { "sounds": [ "mobtalk:cards/flip" ] },
+  "cards.chips": { "sounds": [ "mobtalk:cards/chips" ] },
+  "cards.shuffle": { "sounds": [ "mobtalk:cards/shuffle" ] }
 }

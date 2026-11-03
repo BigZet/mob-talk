@@ -66,6 +66,19 @@ class OfficialdomTest {
         assertEquals(Officialdom.Outcome.TAKEN, Officialdom.judge(Officialdom.Rank.INSPECTOR, mild, 4, 0, 0, 20, 100, 8).outcome());
     }
 
+    @Test void everyOfficialHasTwoOwnBureaucraticHabits() {
+        java.util.Set<String> seen = new java.util.HashSet<>();
+        for (int i = 0; i < 200; i++) {
+            UUID id = UUID.randomUUID();
+            java.util.List<String> q = Officialdom.quirks(id);
+            assertEquals(2, q.size()); assertNotEquals(q.get(0), q.get(1)); assertEquals(q, Officialdom.quirks(id), "the same official keeps its habits");
+            seen.addAll(q);
+            String text = Officialdom.prompt(Officialdom.Rank.CLERK, id, 0, 20, 100, null);
+            assertTrue(text.contains(q.get(0)) && text.contains(q.get(1)) && text.contains("по существу"));
+        }
+        assertEquals(Officialdom.QUIRKS.size(), seen.size(), "every habit turns up");
+    }
+
     @Test void thePromptHintsAndStaysSatire() {
         UUID corrupt = find(1, id -> !Officialdom.honest(id, 20));
         UUID honest = find(1, id -> Officialdom.honest(id, 20));
@@ -76,6 +89,33 @@ class OfficialdomTest {
         Officialdom.Fine fine = ledger.issue("v", UUID.randomUUID(), "Дима", UUID.randomUUID(), "Пётр", "самовольная постройка без разрешения", 8, 10, 1);
         assertTrue(Officialdom.prompt(Officialdom.Rank.INSPECTOR, corrupt, 0, 20, 100, Officialdom.fineOf(fine.data())).contains("№" + fine.number()));
         assertEquals("", Officialdom.prompt(null, corrupt, 0, 20, 100, null));
+    }
+
+    @Test void villagersGrumbleAboutOfficialsAndHintAtBribes() {
+        assertEquals("", Officialdom.gossip(null));
+        assertEquals("", Officialdom.gossip(java.util.List.of()));
+        String text = Officialdom.gossip(java.util.List.of(
+                Map.of("rank", "HEAD", "name", "Пётр", "honest", false, "taken", 4, "dacha", 5, "dung", true),
+                Map.of("rank", "CLERK", "name", "Ольга", "honest", true, "taken", 0),
+                Map.of("rank", "INSPECTOR", "name", "Иван", "honest", false, "taken", 0),
+                Map.of("rank", "REMOVED", "name", "Семён", "dacha", 3)));
+        assertTrue(text.contains("недолюбливаешь")); assertTrue(text.contains("мне тут ещё жить"));
+        assertTrue(text.contains("Глава администрации Пётр")); assertTrue(text.contains("и не раз")); assertTrue(text.contains("золотой унитаз"));
+        assertTrue(text.contains("Бог всё видит")); assertTrue(text.contains("Ольга: говорят, честный"));
+        assertTrue(text.contains("Иван: толком ничего не известно")); assertTrue(text.contains("Семён снял ревизор"));
+        assertEquals("", Officialdom.gossip(java.util.List.of(Map.of("rank", "NOBODY", "name", "x"))));
+    }
+
+    @Test void staleProceduresAreRecognised() {
+        assertTrue(Officialdom.STALE.matcher("Сверка записи ещё не завершена, приходите позже.").find());
+        assertTrue(Officialdom.STALE.matcher("Направлен запрос в архив.").find());
+        assertFalse(Officialdom.STALE.matcher("Снег сверкает на солнце.").find());
+        assertFalse(Officialdom.STALE.matcher("Ваше свидетельство о браке готово.").find());
+    }
+
+    @Test void officialsSpeakRealOfficialese() {
+        String text = Officialdom.prompt(Officialdom.Rank.CLERK, UUID.randomUUID(), 0, 20, 100, null);
+        assertTrue(text.contains("факты не подтвердились")); assertTrue(text.contains("направлено по принадлежности"));
     }
 
     @Test void ordersDoubleThenEscalate() {

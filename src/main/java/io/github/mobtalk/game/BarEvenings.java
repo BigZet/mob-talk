@@ -66,12 +66,15 @@ final class BarEvenings {
     }
 
     void tick(ServerWorld world) {
+        String dimension = world.getRegistryKey().getValue().toString();
         long time = world.getTime();
-        if (!enabled()) { if (!evenings.isEmpty()) for (String key : List.copyOf(evenings.keySet())) close(world, key); return; }
+        if (!enabled()) { if (!evenings.isEmpty()) for (String key : List.copyOf(evenings.keySet())) if (key.startsWith(dimension + "|")) close(world, key); return; }
         if (time % SCAN_PERIOD == SCAN_PHASE) scan(world);
         if (time % PERIOD != 0) return;
         boolean hours = open(world.getTimeOfDay(), bridge.config.barOpenHour, bridge.config.barCloseHour);
         for (Bar bar : List.copyOf(bars.values())) {
+            // Bars of other dimensions are scanned in their own world's tick: this world's coordinates mean nothing to them.
+            if (!bar.key().startsWith(dimension + "|")) continue;
             if (!world.isChunkLoaded(bar.center())) continue;
             boolean alarm = bridge.defense.alarmAt(world, bar.center()) != null;
             Evening evening = evenings.get(bar.key());
@@ -238,7 +241,7 @@ final class BarEvenings {
     private void bartender(ServerWorld world, Evening evening, List<VillagerEntity> seated, long now) {
         if (!(world.getEntity(evening.bartender) instanceof VillagerEntity bartender) || leaves(bartender)) { evening.bartender = null; return; }
         if (bartender.getBlockPos().getSquaredDistance(evening.stand) > 1.5 && now - evening.bartenderSince > WALK_TICKS
-                && bartender.getBlockPos().getSquaredDistance(evening.stand) < 24 * 24) {
+                && bartender.getBlockPos().getSquaredDistance(evening.stand) < GUESTS_RADIUS * GUESTS_RADIUS) {
             // Stuck on the way, as a guest who cannot reach his seat sits down anyway: he steps behind the counter.
             bartender.getNavigation().stop();
             Vec3d at = Vec3d.ofBottomCenter(evening.stand);
@@ -301,6 +304,12 @@ final class BarEvenings {
 
     void clearRuntime() { bars.clear(); evenings.clear(); }
 
+    /** This villager stands behind the counter of an open bar tonight. */
+    boolean isBartender(VillagerEntity villager) {
+        for (Evening evening : evenings.values()) if (villager.getUuid().equals(evening.bartender)) return true;
+        return false;
+    }
+
     /** The bartender of the bar holding this spot and where he stands, for the self-test; null when it is closed or has none. */
     BlockPos bartenderStand(BlockPos near) {
         for (Bar bar : bars.values()) {
@@ -312,13 +321,16 @@ final class BarEvenings {
 
     /** For /mobtalk bar: the bars found around players and how their evenings go. */
     List<String> describe(ServerWorld world) {
+        String dimension = world.getRegistryKey().getValue().toString();
         List<String> out = new ArrayList<>();
         for (Bar bar : bars.values()) {
+            if (!bar.key().startsWith(dimension + "|")) continue;
             Evening evening = evenings.get(bar.key());
             long seated = evening == null ? 0 : evening.guests.keySet().stream().filter(id -> world.getEntity(id) instanceof VillagerEntity v && v.getVehicle() instanceof BarSeatEntity).count();
             out.add(bar.center().toShortString() + ": мест " + bar.seats().size() + ", стойка " + bar.counters().size()
                     + (bar.jukebox() == null ? "" : ", проигрыватель") + (evening == null ? ", закрыт" : ", гостей " + evening.guests.size() + " (сидят " + seated + ")"
-                    + (evening.bartender == null ? "" : ", бармен") + (evening.music ? ", музыка" : "") + ", разговоров " + evening.talks));
+                    + (evening.bartender == null ? "" : ", бармен" + (world.getEntity(evening.bartender) instanceof VillagerEntity v
+                    ? " в " + String.format(java.util.Locale.ROOT, "%.1f", Math.sqrt(v.getBlockPos().getSquaredDistance(evening.stand))) + " м от стойки" : " не загружен")) + (evening.music ? ", музыка" : "") + ", разговоров " + evening.talks));
         }
         return out;
     }

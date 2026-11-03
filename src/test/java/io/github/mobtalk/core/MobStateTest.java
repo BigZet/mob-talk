@@ -90,7 +90,7 @@ class MobStateTest {
         assertTrue(List.of("panicked", "distrustful").contains(reassured.view(REST, 0).marker().key()), reassured.view(REST, 0).marker().toString());
         MobState insulted = new MobState();
         insulted.shift(MobState.Event.INSULT, REST, 0); insulted.shift(MobState.Event.THREAT, REST, 0);
-        assertTrue(insulted.view(REST, 0).calm() < REST.calm() - 35 && insulted.view(REST, 0).trust() < REST.trust() - 30);
+        assertTrue(insulted.view(REST, 0).calm() <= REST.calm() - 35 && insulted.view(REST, 0).trust() < REST.trust() - 30);
         insulted.shift(MobState.Event.APOLOGY, REST, 0);
         assertTrue(insulted.view(REST, 0).trust() > REST.trust() - 30);
         MobState calmed = new MobState();

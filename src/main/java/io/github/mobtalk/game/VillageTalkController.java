@@ -56,7 +56,7 @@ public final class VillageTalkController {
 
     private void chatter(ServerWorld world) {
         if (talking || !talks.isEmpty() || bridge.initiative.playerBusy || bridge.wedding.active()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             double range = bridge.config.villageChatterRange;
@@ -82,7 +82,7 @@ public final class VillageTalkController {
     /** A talk between two villagers sitting in the bar ({@link BarEvenings}), its pace kept by the bar; false while the floor is taken. */
     boolean barTalk(ServerWorld world, VillagerEntity a, VillagerEntity b, ServerPlayerEntity player) {
         if (talking || !talks.isEmpty() || bridge.initiative.playerBusy || bridge.wedding.active()) return false;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         ConversationStore.Village village = village(world, a);
         VillageChatter.Input input = bridge.memory.chatterInput(seat(a), seat(b), key(world, a, village), village == null ? "" : village.name(),
                 MobGameBridge.playerName(player), "вечер", random::nextDouble, now, true);
@@ -93,7 +93,8 @@ public final class VillageTalkController {
     /** A villager that may talk: grown, awake, not fleeing, fighting, riding, trading or held by the player's conversation. */
     private boolean free(VillagerEntity villager) {
         return villager.isAlive() && !villager.isRemoved() && !villager.isAiDisabled() && !villager.isBaby() && !villager.isSleeping() && !villager.isPanicking()
-                && villager.getTarget() == null && !villager.hasVehicle() && !villager.hasCustomer() && !bridge.actions.busy(villager) && !bridge.wedding.involved(villager.getUuid());
+                && villager.getTarget() == null && !villager.hasVehicle() && !villager.hasCustomer() && !bridge.actions.busy(villager) && !bridge.wedding.involved(villager.getUuid())
+                && !bridge.confession.hushes(villager); // Б4: у исповеди жители молчат.
     }
     /** The known village of this villager: by its village structure when the option reads sites, else the nearest within the radius. */
     private ConversationStore.Village village(ServerWorld world, VillagerEntity villager) {
@@ -126,7 +127,7 @@ public final class VillageTalkController {
 
     private void notice(ServerWorld world) {
         if (bridge.wedding.active()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             double range = bridge.config.noticeRange;
@@ -173,7 +174,7 @@ public final class VillageTalkController {
 
     private void arrivals(ServerWorld world) {
         if (bridge.initiative.playerBusy) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (ServerPlayerEntity player : world.getPlayers()) {
             if (!player.isAlive() || player.isSpectator()) continue;
             for (VillageNotices.Invitation invitation : bridge.memory.invitations(player.getUuid(), now)) {

@@ -1,4 +1,4 @@
-﻿# Stage "server" of the in-game self-test (track G, docs\server-plan.md 16.4): a dedicated server from this checkout and two
+# Stage "server" of the in-game self-test (track G, docs\server-plan.md 16.4): a dedicated server from this checkout and two
 # throwaway clients play one scenario together, with no hands. The server (ServerSelfTestPlay, -Dmobtalk.selftest.play=Test1,Test2)
 # conducts: it builds a stage, summons villagers and sends each client its next move; the clients (SelfTestServer,
 # -Dmobtalk.selftest.play.client) act with their real packets and report what they saw. Test1 is the streamer, Test2 a player,
@@ -7,9 +7,10 @@
 # client screenshots (mobtalk-server-*.png) and window shots (window-*.png). Never touches another server, the base instances,
 # the pack instance's mods or worlds (the world is copied), nor another run's games. Games count toward the machine's limit (6).
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 -Only server   (or this script directly)
-#   [-ModsFrom <folder with our other mods' jars>] [-World 'stream 1 (сборка)'] [-ShotEverySeconds 60] [-Keep] [-NoBuild]
+#   [-ModsFrom <folder with our other mods' jars>] [-World 'stream 1 (сборка)'] [-ShotEverySeconds 60] [-Keep] [-NoBuild] [-Only confession]
+#   -Only confession: after the setup only the confession steps (idea Б4), then the clients quit.
 param([string]$ModsFrom = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server-integration\mods'), [string]$World = 'stream 1 (сборка)',
-    [int]$ShotEverySeconds = 60, [switch]$Keep, [switch]$NoBuild, [string]$Pack = 'mob-talk-pack', [int]$TimeoutMinutes = 45)
+    [int]$ShotEverySeconds = 60, [switch]$Keep, [switch]$NoBuild, [string]$Pack = 'mob-talk-pack', [int]$TimeoutMinutes = 45, [string]$Only = '')
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
@@ -70,6 +71,7 @@ try {
 
     Say 'start server'
     $jvm = "-Dmobtalk.selftest.play=$($nicks -join ',') -Dmobtalk.selftest.notts=true"
+    if ($Only) { $jvm += " -Dmobtalk.selftest.play.only=$Only" }   # -Only cards: only the game of 21 (docs\cards-21.md, stage 6)
     # Start-Process joins arguments with spaces as they are: values with spaces carry their own quotes.
     $serverProc = Start-Process powershell -PassThru -WindowStyle Hidden -RedirectStandardOutput "$scratch\server-console.log" -RedirectStandardError "$scratch\server-console.err" -ArgumentList @(
         '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', (Join-Path $PSScriptRoot 'run-local-server.ps1'), '-Dir', "`"$srv`"", '-World', "`"$World`"",
