@@ -30,35 +30,20 @@
 `THIRD_PARTY_NOTICES.md`. Однострочные списки вида `copy.x = x; ...` в `MobTalkConfig.copy`,
 `Tunables.resetSection` и `MobGameBridge.clearRuntime` при слиянии нужно объединять построчно.
 
-## Карта активных веток (обновлено 3 ноября 2026, сверено агентом GLM)
+## Карта активных веток (обновлено 3 ноября 2026, сверено агентом GLM; чистка выполнена)
 
 Полный реестр с уникальным содержимым, ворктри и решением Дмитрия — **`docs/agents/branch-registry.md`**.
 Кратко: фичи из веток сливать в `main` по мере готовности, но **в пак не включать, пока не доработаны города**.
 
-| Ветка | Трек | Состояние (3 ноября) |
+| Ветка | Трек | Состояние (3 ноября, после чистки) |
 |---|---|---|
-| `claude/project-thread-736naa`, `bigzet/city` | Города с панельками (перестройка: свой биом, генератор, дома, общественные здания) | идёт; **база кластера**: супермаркеты, машины, заборы, мебель, лифты, горожанки, бандиты зависят от неё |
-| `claude/test-officials-bandits-mood` (+ворктри `mob-talk-test-obm`) | Тестовая сборка чиновники+бандиты+настроение | только для теста; уникальное — **бандиты** (16 файлов, в `main` их нет); чиновники/настроение/дети уже в `main` |
-| `claude/project-thread-yrcupz` | Бандиты (PR #10, draft) | черновик; все коммиты уже в тестовой сборке |
+| `bigzet/city` | **Носитель кластера городов**: перестройка (экс-`736naa`), супермаркеты/рынок/киоски, машины, советские заборы, мебель квартир, лифты — все влиты в неё, ветки-источники удалены | идёт; **база кластера**: от неё зависят бандиты, горожанки, милиция |
+| `claude/project-thread-yrcupz` | Бандиты (PR #10, draft) | единственный носитель бандитов; при вливании в `main` применить фикс `MobClock.now()` в `BanditController` (см. реестр) |
 | `claude/police-tts-handoff`, `-faxwwz` | Милиция, громкоговоритель ElevenLabs | идёт, не в `main` |
 | `claude/project-thread-3y6lor` | Меркантильные горожанки (PR #9, draft) | черновик, ждёт городов |
-| `claude/project-thread-b1qu0w` | Супермаркеты, рынок, киоски | слит в ветку `bigzet/city` |
-| `claude/project-thread-3b44c7` | Машины в городах | принят, вливается в ветку городов |
-| `claude/project-thread-o62efd` | Советские заборы | принят, вливается в ветку городов |
-| `claude/project-thread-0b3rgw` | Мебель квартир в городах | идёт |
-| `claude/project-thread-1r9tyc` | Лифты в многоэтажках | готово, ждёт Дмитрия |
-| `kimi/mod-status` | docs/mods-status.md (список модов сборки) | слито в `main` 3 ноября (PR #27) |
-| `claude/project-thread-gkkohj` | Чиновники и коррупция, ЗАГС, справки | слито в `main` (PR #12 + этапы 2–4) |
-| `claude/project-thread-0ixzwl` | Настроение жителей | слито (PR #11) |
-| `claude/project-thread-cus41k` | Интонационные теги TTS и правки свадьбы и ребёнка | слито (PR #16, PR #20) |
-| `claude/project-thread-426kyh` | Игра в 21, этапы 6–7 | содержимое уже в `main` (PR #23); можно удалять с одобрения Дмитрия |
-| `claude/project-thread-qbydyw` | Свадьба-клятва | содержимое уже в `main` (PR #20); можно удалять |
-| `claude/project-thread-7khkif` | Правки дорог после плейтеста | перекрыта `main` (PR #7 и далее); можно удалять |
-| `parrot-cages/claude/z5-parrot-jail` | Старая разработка Parrot Cages до выделения в свой репо | перекрыта репозиторием parrot-cages; можно удалять |
-| `claude/project-thread-9k533m` | Тревога в деревне | слито (PR #17) |
-| `claude/project-thread-hbqdf2` | Дороги между деревнями | слито (PR #7) |
-| `claude/project-thread-hz9vk7`, `-t6qsqf` | Колонка «Алиса» | слито (PR #18) |
-| `claude/project-thread-0o6gof` | Казино | слито (PR #14) |
+| `divine-block/*`, `rusflora/*`, `parrot-cages/main` | Ветки соседних проектов | **единственный remote** репо divine-block, rusflora, parrot-cages — не трогать из этого репозитория |
+| `claude/test-officials-bandits-mood`, `kimi/mod-status`, `shots/*`, `parrot-cages/claude/z5-parrot-jail`, `736naa`, `3b44c7`, `o62efd`, `b1qu0w`, `0b3rgw`, `1r9tyc`, `426kyh`, `qbydyw`, `7khkif` | Удалены 3 ноября | содержимое в `main`, `bigzet/city`, `yrcupz` или репозитории parrot-cages — см. реестр |
+| `claude/project-thread-gkkohj`, `-cus41k`, `-0ixzwl`, `-9k533m`, `-hbqdf2`, `-hz9vk7`, `-t6qsqf`, `-0o6gof` | Чиновники, интонации TTS, настроение, тревога, дороги, «Алиса», казино | слито в `main` (PR #12, #16, #11, #17, #7, #18, #14); remote-ветки уже удалены |
 
 Актуальную картину всегда проверяйте сами: `git fetch && git for-each-ref --sort=-committerdate refs/remotes/origin`
 и список открытых PR. Ветки, слитые в `main`, можно не учитывать.
