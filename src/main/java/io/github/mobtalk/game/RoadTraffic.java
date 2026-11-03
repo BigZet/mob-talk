@@ -135,7 +135,7 @@ final class RoadTraffic {
             Trip trip = it.next();
             RoadNetwork.Road road = bridge.roads.road(world, trip.road);
             if (road == null || trip.slot >= perRoad()) { vanish(trip); it.remove(); state.saved.markDirty(); continue; }
-            if (now % 20 == trip.slot) shape(world, road, trip);
+            if (now % 20 == trip.slot % 20) shape(world, road, trip); // слоты за пределами 20 тиков иначе никогда не принимали бы форму
             step(world, state, road, trip);
         }
         if (now % 200 == 7) state.saved.markDirty();

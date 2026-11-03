@@ -8,6 +8,7 @@ import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -104,10 +105,19 @@ public final class AdminWeb {
         api.close();
         server.stop();
         chores.shutdownNow();
-        history.close();
-        metrics.close();
-        map.close();
-        tracks.close();
+        // Четыре закрытия не зависят друг от друга, а каждое ждёт своего писателя (карта — до 60 с): цепочкой в тике
+        // SERVER_STOPPING они держали /stop по 90 секунд. Параллельно и с барьером в 5 секунд; прерванное закрытие
+        // оставляет писателю уже отданное и гасит его (flush прерывание переносит).
+        ExecutorService drain = Executors.newCachedThreadPool(runnable -> {
+            Thread thread = new Thread(runnable, "mobtalk-admin-stop");
+            thread.setDaemon(true);
+            return thread;
+        });
+        for (Runnable close : new Runnable[] { history::close, metrics::close, map::close, tracks::close }) drain.execute(close);
+        drain.shutdown();
+        try { drain.awaitTermination(5, TimeUnit.SECONDS); }
+        catch (InterruptedException impatient) { Thread.currentThread().interrupt(); }
+        drain.shutdownNow();
     }
 
     /** {@code /mobtalk admin web password <новый>}: works at once; sessions of the old password stay until they expire. */

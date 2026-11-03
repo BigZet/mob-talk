@@ -10,6 +10,8 @@ import net.minecraft.util.math.Vec3d;
 public final class Roads {
     private Roads() { }
 
+    private static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(Roads.class);
+
     private static MobGameBridge bridge(ServerWorld world) { return MobGameBridge.active(world.getServer()); }
 
     /** Plans a road from one spot to the other; {@code done} hears the command's line ("дорога N: …" or why there is none). */
@@ -113,14 +115,30 @@ public final class Roads {
         int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
         // The road's columns as the builder found them, so that the check and the laying agree block for block (a sample line of
         // its own missed the road's last half block, 2026-10-25); only the columns of chunks laid, and of the part between the ends.
+        java.util.Map<Long, java.util.List<net.minecraft.util.math.BlockBox>> pieceCache = new java.util.HashMap<>();
         for (RoadBuilder.Column column : columns(road).values()) {
             if (column.index() < from || column.index() > to || Math.abs(column.across()) > RoadBuilder.CURB) continue;
             if (!road.done.contains(net.minecraft.util.math.ChunkPos.toLong(column.x() >> 4, column.z() >> 4))) continue;
-            int x = column.x(), z = column.z(), y0 = road.points.get(column.index()).h2() >> 1;
+            RoadPlan.Point point = road.points.get(column.index());
+            int x = column.x(), z = column.z(), y0 = point.h2() >> 1;
+            // The laying leaves a plain-road column beside a structure's piece alone (the road ends where the village begins),
+            // and what stands there stays: the check leaves the column alone too, or the village's own blocks count as
+            // obstacles (the test road crosses a village's ground, 2026-11-03).
+            if (point.kind() == RoadPlan.Kind.GROUND && RoadBuilder.blockedByStructure(
+                    pieceCache.computeIfAbsent(net.minecraft.util.math.ChunkPos.toLong(x >> 4, z >> 4),
+                            k -> RoadBuilder.pieces(world, new net.minecraft.util.math.ChunkPos(k))),
+                    column, point)) continue;
+            // A bridge or tunnel column the laying refused — a village piece's block stands where the deck would go, and the
+            // laying gives way without touching it — stays as it was left: the piece is not the road's obstacle (the test road
+            // crosses a village's ground on a short bridge, 2026-11-04).
+            if (point.kind() != RoadPlan.Kind.GROUND && !RoadBuilder.column(world, palette, point, column, null)) continue;
             for (int y = y0 + 1; y <= y0 + 4; y++) {
                 net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
                 // The road's own (a lamp's base and post, a railing, a tunnel's wall) is no obstacle.
                 if (state.isAir() || state.getBlock() instanceof net.minecraft.block.FenceBlock || palette.owns(state.getBlock())) continue;
+                if (out[0] < 8) // что за столб стоит на дороге — редкий путь отказа, без имени блока его не разобрать
+                    LOG.info("road {}: {} stands in the road at {} {} {} ({} above the surface, kind {}, across {})", id,
+                            state.getBlock().getTranslationKey(), x, y, z, y - y0, point.kind(), column.across());
                 if (out[0]++ == 0) { out[1] = x; out[2] = y; out[3] = z; }
                 break;
             }
@@ -300,23 +318,27 @@ public final class Roads {
         return out;
     }
 
-    /** The middle of the road at point {@code index}, at the height of the feet on it. */
+    /** The middle of the road at point {@code index}, at the height of the feet on it; null when Mob Talk is off or there is no such road. */
     public static Vec3d point(ServerWorld world, int id, int index) {
-        RoadNetwork.Road road = bridge(world).roads.road(world, id);
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return null;
         RoadPlan.Point p = road.points.get(Math.max(0, Math.min(road.points.size() - 1, index)));
         return new Vec3d(p.x(), p.h2() / 2.0, p.z());
     }
 
-    /** The first point of a bridge and of a tunnel, -1 where the road has none. */
+    /** The first point of a bridge and of a tunnel, -1 where the road has none (or Mob Talk is off, or there is no such road). */
     public static int[] firsts(ServerWorld world, int id) {
-        RoadNetwork.Road road = bridge(world).roads.road(world, id);
-        int bridge = -1, tunnel = -1;
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return new int[] { -1, -1 };
+        int firstBridge = -1, tunnel = -1;
         for (int i = 0; i < road.points.size(); i++) {
             RoadPlan.Kind kind = road.points.get(i).kind();
-            if (kind == RoadPlan.Kind.BRIDGE && bridge < 0) bridge = i;
+            if (kind == RoadPlan.Kind.BRIDGE && firstBridge < 0) firstBridge = i;
             if (kind == RoadPlan.Kind.TUNNEL && tunnel < 0) tunnel = i;
         }
-        return new int[] { bridge, tunnel };
+        return new int[] { firstBridge, tunnel };
     }
 
     /** A trip of the road ({@code cart}, {@code wagon} or {@code rider}) to its point nearest the spot, taking shape there. */

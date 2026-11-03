@@ -49,10 +49,10 @@ public final class Backups {
             long t = clock.getAsLong();
             String name = NAME.format(Instant.ofEpochMilli(t).atZone(zone)) + ".zip";
             Path target = folder.resolve(name), partial = folder.resolve(name + ".part");
-            saver.pauseAndFlush();
             try {
+                saver.pauseAndFlush();
                 zip(world, partial);
-            } finally { saver.resume(); }
+            } finally { saver.resume(); } // и по таймауту flush: иначе автосохранение мира останется выключенным до перезапуска
             Files.move(partial, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             return Json.obj("name", name, "size", Files.size(target), "t", t);
         } finally { running.set(false); }

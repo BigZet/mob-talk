@@ -221,7 +221,8 @@ final class VillageDefenseController {
         Box reach = zone.box().expand(bridge.config.alarmPlayerRange);
         for (UUID id : List.copyOf(alarm.targets.keySet())) {
             ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(id);
-            if (player != null && player.getWorld() == world && player.isAlive() && reach.contains(player.getPos())) alarms.seen(zone.key(), id, now);
+            if (player != null && player.getWorld() == world && player.isAlive() && !player.isCreative() && !player.isSpectator()
+                    && reach.contains(player.getPos())) alarms.seen(zone.key(), id, now);
         }
     }
 

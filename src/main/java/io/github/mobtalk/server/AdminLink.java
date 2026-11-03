@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
 
@@ -44,7 +47,10 @@ public final class AdminLink {
     private static final List<Long> tickNanos = new ArrayList<>();
     private static int ticks;
     /** Молитвы бога уже перенесены в историю до этого времени (журнал молитв мода живёт в памяти и начинается с запуска сервера). */
-    private static long prayersSince;
+    private static volatile long prayersSince;
+    /** Опросы бога (вердикты, боссы, изгнания) идут здесь: с потока сервера источник чужого мода выполняет свою работу инлайн
+     * и растягивает тик перебором сущностей всех миров, а контракт админки — «источник зовут из её потоков». */
+    private static volatile ExecutorService pulls;
     /** Открытые записи диалогов: id записи → игрок, чтобы админка могла отменить диалог. */
     private static final Map<String, UUID> runs = new ConcurrentHashMap<>();
 
@@ -59,7 +65,14 @@ public final class AdminLink {
             @Override public void pauseAndFlush() throws Exception {
                 server.submit(() -> { for (ServerWorld world : server.getWorlds()) world.savingDisabled = true; server.saveAll(true, true, true); return null; }).get(60, TimeUnit.SECONDS);
             }
-            @Override public void resume() { server.execute(() -> { for (ServerWorld world : server.getWorlds()) world.savingDisabled = false; }); }
+            @Override public void resume() {
+                Runnable clear = () -> { for (ServerWorld world : server.getWorlds()) world.savingDisabled = false; };
+                // С потока сервера — сразу; иначе ждём выполнения: после выхода из тик-лупа очередь задач не работает,
+                // и «забытый» выключенный сейв потерял бы мир при /stop.
+                if (server.isOnThread()) { clear.run(); return; }
+                try { server.submit(() -> { clear.run(); return null; }).get(10, TimeUnit.SECONDS); }
+                catch (Exception stopping) { MobTalkMod.LOGGER.warn("Админка: не удалось вернуть автосохранение после бэкапа ({})", stopping.toString()); }
+            }
         };
         AdminWeb.Hooks hooks = new AdminWeb.Hooks(game, saver, server.getSavePath(WorldSavePath.ROOT), ServerConfig::get, ServerConfig::update,
                 SettingsScope::personal, AdminLink::limits);
@@ -68,6 +81,14 @@ public final class AdminLink {
         web = started; view = game; current = server;
         runs.clear();
         prayersSince = System.currentTimeMillis();
+        ExecutorService fresh = Executors.newSingleThreadExecutor(runnable -> {
+            Thread thread = new Thread(runnable, "mobtalk-admin-pulls");
+            thread.setDaemon(true);
+            return thread;
+        });
+        // Новый мир — новая история бога: боссы и изгнания прошлого мира не долетают сюда записями «ушёл».
+        fresh.execute(() -> { bosses.clear(); banned.clear(); divineSeen = false; });
+        pulls = fresh;
         for (var entry : FabricLoader.getInstance().getEntrypointContainers("mobtalk-admin", UnaryOperator.class)) {
             String id = entry.getProvider().getMetadata().getId();
             if ("mobtalk".equals(id) || started.sources().has(id)) continue;
@@ -83,6 +104,7 @@ public final class AdminLink {
         if (dialogue != null) dialogue.setJournal(new JournalAdapter(started.journal()));
         MobGameBridge.divineJournal((text, data) -> { try { started.journal().event("divine", null, null, text, data); } catch (RuntimeException failure) { MobTalkMod.LOGGER.warn("Админка: событие бога не записано ({})", failure.toString()); } });
         if (sampler == null) sampler = MapSampler.register(started.map());
+        else sampler.retarget(started.map()); // второй сервер в той же JVM: старый сэмплер в тике ссылался бы на закрытый MapTiles
         if (!hooked) {
             hooked = true;
             ServerTickEvents.END_SERVER_TICK.register(AdminLink::tick);
@@ -113,6 +135,9 @@ public final class AdminLink {
         AdminWeb admin = web;
         web = null; view = null; current = null;
         runs.clear();
+        ExecutorService oldPulls = pulls;
+        pulls = null;
+        if (oldPulls != null) oldPulls.shutdownNow();
         AdminCommands.setWebAddress(() -> "");
         MobGameBridge.divineJournal(null);
         if (admin != null) admin.stop();
@@ -186,8 +211,10 @@ public final class AdminLink {
             if (p95 > 0) values.put(MetricSeries.latency(kind, true), (double) p95);
         }
         admin.metrics().record(values, worlds);
-        pullVerdicts(admin);
-        pullDivineEvents(admin);
+        ExecutorService service = pulls;
+        if (service == null) return;
+        try { service.execute(() -> { if (web == admin) { pullVerdicts(admin); pullDivineEvents(admin); } }); }
+        catch (RejectedExecutionException stopping) { MobTalkMod.LOGGER.debug("Админка: опросы бога не отправлены ({})", stopping.toString()); }
     }
 
     /** Вердикты бога в историю: молитвы источника divineblock (операция prayers) становятся записями «verdict» с data.act — по ним
