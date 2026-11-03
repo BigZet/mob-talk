@@ -482,6 +482,14 @@ final class MobTalkSettingsScreen extends Screen {
                     wide(tip(toggle("mobtalk.settings.villageHeavy", draft.villageHeavy, value -> draft.villageHeavy = value), "mobtalk.settings.villageHeavy.tooltip"),
                             tip(toggle("mobtalk.settings.villageCavalry", draft.villageCavalry, value -> draft.villageCavalry = value), "mobtalk.settings.villageCavalry.tooltip"));
                 }),
+                Map.<String, Runnable>entry("bandits", () -> {
+                    wide(tip(toggle("mobtalk.settings.bandits", draft.bandits, value -> draft.bandits = value), "mobtalk.settings.bandits.tooltip"),
+                            tip(toggle("mobtalk.settings.banditsRobVillagers", draft.banditsRobVillagers, value -> draft.banditsRobVillagers = value), "mobtalk.settings.banditsRobVillagers.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.banditsInVillages", draft.banditsInVillages, value -> draft.banditsInVillages = value), "mobtalk.settings.banditsInVillages.tooltip"),
+                            tip(toggle("mobtalk.settings.banditHaggle", draft.banditHaggle, value -> draft.banditHaggle = value), "mobtalk.settings.banditHaggle.tooltip"));
+                    wide(tip(toggle("mobtalk.settings.banditRumors", draft.banditRumors, value -> draft.banditRumors = value), "mobtalk.settings.banditRumors.tooltip"),
+                            tip(toggle("mobtalk.settings.banditFearLight", draft.banditFearLight, value -> draft.banditFearLight = value), "mobtalk.settings.banditFearLight.tooltip"));
+                }),
                 Map.<String, Runnable>entry("casino", () -> {
                     wide(tip(toggle("mobtalk.settings.casino", draft.casino, value -> draft.casino = value), "mobtalk.settings.casino.tooltip"));
                     wide(tip(toggle("mobtalk.settings.casinoBouncers", draft.casinoBouncers, value -> draft.casinoBouncers = value), "mobtalk.settings.casinoBouncers.tooltip"),

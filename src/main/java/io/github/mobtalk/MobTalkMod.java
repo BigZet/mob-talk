@@ -112,6 +112,7 @@ public final class MobTalkMod implements ModInitializer {
     @Override public void onInitialize() {
         WeddingItems.register(); // Свои предметы — до загрузки любого мира, на обеих сторонах.
         io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
+        io.github.mobtalk.game.BanditContent.register(); // Ночные бандиты в городах.
         io.github.mobtalk.game.RoadCartEntity.register(); // Повозки на дорогах между деревнями.
         io.github.mobtalk.game.RoadContent.register(); // Мелочи у дорог: камушки, пирамидки, верстовые столбы, поваленные брёвна.
         io.github.mobtalk.game.OfficialContent.register(); // Казённый стол, чиновники, конверт и справка.

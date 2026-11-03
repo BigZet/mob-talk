@@ -62,6 +62,8 @@ final class SelfTest {
     static final boolean ONLY_TOWERS = "towers".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=guards}: village defence, stage 3 — guard stands, guards, their day, night round and fight (no LLM, no voice). */
     static final boolean ONLY_GUARDS = "guards".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=bandits}: night bandits — the demand, payment, robbery, loot, a mugged villager (no LLM, no voice). */
+    static final boolean ONLY_BANDITS = "bandits".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=roads}: a road between two spots laid, its carts, wagon and horseman, the lamps (no LLM, no voice). */
     static final boolean ONLY_ROADS = "roads".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=officials}: officials — desks, ranks, looks, bribes, witnesses, the inspector's order (no LLM, no voice). */
@@ -194,6 +196,7 @@ final class SelfTest {
                 : ONLY_MOOD ? () -> new SelfTestMood(this, sx, SY, sz).run(this::finish)
                 : ONLY_TOWERS ? () -> new SelfTestTowers(this, sx, SY, sz).run(this::finish)
                 : ONLY_GUARDS ? () -> new SelfTestGuards(this, sx, SY, sz).run(this::finish)
+                : ONLY_BANDITS ? () -> new SelfTestBandits(this, sx, SY, sz).run(this::finish)
                 : ONLY_ROADS ? () -> new SelfTestRoads(this, sx, SY, sz).run(this::finish)
                 : ONLY_BAR ? () -> new SelfTestBar(this, sx, SY, sz).run(this::finish)
                 : ONLY_MFC ? () -> new SelfTestMfc(this, sx, SY, sz).run(this::finish)

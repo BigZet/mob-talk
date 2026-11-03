@@ -229,6 +229,7 @@ final class VillageDefenseController {
      * (it hunts the sleepless player, not the village) and a spider in daylight that hunts nobody are no threat either. */
     boolean threat(MobEntity mob) {
         if (!mob.isAlive() || mob.isRemoved() || !(mob instanceof Monster)) return false;
+        if (mob instanceof BanditEntity bandit && bandit.lurking()) return false; // a bandit's knife is still in his pocket
         if (mob instanceof PhantomEntity) return false;
         if (mob instanceof Angerable && mob.getTarget() == null) return false;
         if (mob instanceof SpiderEntity && mob.getTarget() == null && mob.getWorld().isDay()) return false;

@@ -57,6 +57,8 @@ public final class MobGameBridge implements GameBridge {
     final VillageController villages;
     /** Village defence: the alarm, no monsters spawning in a guarded village, a sturdier golem. */
     final VillageDefenseController defense;
+    /** Night bandits in the cities: the night's draw, the gangs' minds. */
+    final BanditController bandits;
     /** Roads between villages, laid as their chunks load. */
     final RoadNetwork roads;
     /** Carts, wagons and horsemen on those roads. */
@@ -94,6 +96,7 @@ public final class MobGameBridge implements GameBridge {
         families = new FamilyController(this);
         villages = new VillageController(this);
         defense = new VillageDefenseController(this);
+        bandits = new BanditController(this);
         roads = new RoadNetwork(this);
         traffic = new RoadTraffic(this);
         officials = new OfficialsController(this);
@@ -203,6 +206,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.families.tick(world);
                 bridge.villages.tick(world);
                 bridge.defense.tick(world);
+                bridge.bandits.tick(world);
                 bridge.roads.tick(world);
                 bridge.traffic.tick(world);
                 bridge.officials.tick(world, bridge.defense.zones(world));
@@ -265,7 +269,7 @@ public final class MobGameBridge implements GameBridge {
                 bridge.memory.recordAction(card.id(), ActionIntent.none());
         if (server.isStopped()) return CompletableFuture.completedFuture(null);
         CompletableFuture<Void> done = new CompletableFuture<>();
-        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.traffic.clearRuntime(); bridge.roads.clearRuntime(); bridge.officials.clearRuntime(); bridge.passports.clearRuntime(); bridge.civil.clearRuntime(); bridge.graft.clearRuntime(); bridge.moods.clearRuntime(); bridge.mischief.clearRuntime(); bridge.changes.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.confession.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); bridge.heard.clear(); done.complete(null); });
+        server.execute(() -> { bridge.actions.clearRuntime(); bridge.sight.clear(); bridge.social.clearRuntime(); bridge.society.clearRuntime(); bridge.villages.clearRuntime(); bridge.divine.clearRuntime(); bridge.defense.clearRuntime(); bridge.traffic.clearRuntime(); bridge.roads.clearRuntime(); bridge.officials.clearRuntime(); bridge.bandits.clearRuntime(); bridge.passports.clearRuntime(); bridge.civil.clearRuntime(); bridge.graft.clearRuntime(); bridge.moods.clearRuntime(); bridge.mischief.clearRuntime(); bridge.changes.clearRuntime(); bridge.jealousy.clearRuntime(); bridge.rivalry.clearRuntime(); bridge.coSleep.clearRuntime(); bridge.wedding.clearRuntime(); bridge.confession.clearRuntime(); bridge.children.clearRuntime(); bridge.initiative.clearRuntime(); bridge.talk.clearRuntime(); bridge.bars.clearRuntime(); bridge.bargaining.close(); bridge.trades.close(); bridge.heard.clear(); done.complete(null); });
         return done;
     }
     /** Б1: an event of the divine block (JSON), from any thread; dropped when no world is open. */
@@ -354,6 +358,7 @@ public final class MobGameBridge implements GameBridge {
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerId);
             Entity entity = player == null ? null : ((ServerWorld) player.getWorld()).getEntity(mobId);
             if (!(entity instanceof MobEntity mob) || !mob.isAlive()) return "Моб недоступен";
+            if (mob instanceof BanditEntity bandit) return bandit.pay(player, player.getMainHandStack()); // a bandit takes it as his due
             String penance = confession.handOver(player, mob); // Б4: милостыня бедному и труд на храм — не подарок.
             if (penance != null) return penance;
             int before = player.getMainHandStack().getCount();
@@ -862,6 +867,10 @@ public final class MobGameBridge implements GameBridge {
                             + ". Свадьбу играют у колокола днём: скажите «идём на свадьбу». Свидетелей зовите словами «будь моим свидетелем»."));
                 if (Wedding.calls(said)) parts.add(startWedding(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
                 if (Wedding.asksWitness(said)) parts.add(appointWitness(mobId, playerId).thenApply(m -> m.isBlank() ? "" : "[Mob Talk] " + m));
+            }
+            if (config.bandits && ((ServerWorld) player.getWorld()).getEntity(mobId) instanceof BanditEntity bandit) {
+                String note = bandits.haggle((ServerWorld) player.getWorld(), bandit, player, said);
+                if (!note.isBlank()) parts.add(CompletableFuture.completedFuture("§7[Mob Talk] " + note));
             }
             if (config.coSleep && CoSleep.invites(said)) parts.add(inviteToBed(mobId, playerId).thenApply(v -> ""));
             if (config.familyLife && config.socialLayer) {
