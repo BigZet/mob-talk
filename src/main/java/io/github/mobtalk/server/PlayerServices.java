@@ -42,6 +42,7 @@ public final class PlayerServices {
         AdminCommands.register();
         ClipCommands.register(); // Идея З4: метки для монтажа.
         MomentLink.register();
+        RoleTags.register();
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             current = server;
             rights = rights();

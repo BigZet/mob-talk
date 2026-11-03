@@ -136,7 +136,7 @@ final class VillageGuards {
     }
 
     /** A stand may go here: dry natural or village ground under it (not a road or a field), room for it and for a guard beside it. */
-    private static boolean free(ServerWorld world, BlockPos at) {
+    static boolean free(ServerWorld world, BlockPos at) {
         BlockState ground = world.getBlockState(at.down()), here = world.getBlockState(at);
         if (!world.getFluidState(at).isEmpty() || !world.getFluidState(at.down()).isEmpty()) return false;
         if (ground.isOf(Blocks.DIRT_PATH) || ground.isOf(Blocks.FARMLAND) || ground.isOf(DefenseContent.GUARD_POST) || !ground.isSolidBlock(world, at.down())) return false;

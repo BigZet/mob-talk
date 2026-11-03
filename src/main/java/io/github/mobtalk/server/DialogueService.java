@@ -1,5 +1,6 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import io.github.mobtalk.core.ActionIntent;
@@ -78,6 +79,8 @@ public final class DialogueService {
     public interface Engines { ConversationEngine open(MobTalkConfig config, Path worldDirectory) throws Exception; }
     /** Что включено: семья и свадьба ({@code familyLife}), снимки экрана (одиночка), ведущий свадьбы на сервере ({@code ceremony}: на
      * выделенном; в одиночке службу ведёт клиентский {@code WeddingVoice}). */
+    /** Одиночка: клиентская служба свадьбы берёт клятву, распознанную сервером ({@code true} — взяла). Ставит клиент. */
+    public static volatile java.util.function.BiPredicate<UUID, String> LOCAL_VOW;
     public record Options(boolean family, boolean pictures, boolean ceremony) {
         public Options(boolean family, boolean pictures) { this(family, pictures, false); }
     }
@@ -121,9 +124,13 @@ public final class DialogueService {
     private volatile Decider decider = new RuleDecider();
     private volatile boolean closed;
     private volatile Journal journal = Journal.NONE;
+    /** Игра в 21: житель позвал игрока за стол или согласился ({@code game: OFFER}); игра открывает стол. */
+    private volatile java.util.function.BiConsumer<UUID, Integer> cardOffer = (player, mob) -> { };
     final SpontaneousVoices spontaneous;
     private final MobStateSync states;
     final WeddingHost wedding;
+    /** Б4: исповедь у священника (в одиночке и на сервере). */
+    final ConfessionHost confession;
     private long ticks;
 
     public DialogueService(GameBridge bridge, Path worldDirectory, Outbox out, Engines engines, Function<MobTalkConfig, Decider> deciders,
@@ -134,6 +141,7 @@ public final class DialogueService {
         this.spontaneous = new SpontaneousVoices(this, bridge);
         this.states = new MobStateSync(bridge, out);
         this.wedding = new WeddingHost(this, bridge);
+        this.confession = new ConfessionHost(this, bridge);
     }
 
     // ---- Сессии. ----
@@ -169,7 +177,7 @@ public final class DialogueService {
         volatile LlmSpend.Tally spend = LlmSpend.Tally.NONE;
         Session(UUID player) { this.player = player; }
 
-        boolean voiceOn() { return voicesPending > 0 || System.currentTimeMillis() < floorUntil; }
+        boolean voiceOn() { return voicesPending > 0 || MobClock.now() < floorUntil; }
         boolean busyTalking() { return requestActive || voiceOn(); }
         boolean witnessPending() { return witnessesInFlight > 0 || !ready.isEmpty() || pendingDeliveries > 0; }
         void status(String text) { status = text; out.status(player, text, requestActive, ""); }
@@ -193,9 +201,16 @@ public final class DialogueService {
     Decider decider() { return decider; }
     DialoguePool pool() { return pool; }
     public ConversationEngine engine() { return engine; }
+    /** Движок, поднятый по настройкам сервера (игра в 21 и другие фоновые реплики); блокирует при первом вызове — не с потока сервера. */
+    public ConversationEngine readyEngine() throws Exception { return ensureEngine(config()); }
     /** Точка подключения админки: журнал диалогов и событий. */
     public void setJournal(Journal journal) { this.journal = journal == null ? Journal.NONE : journal; }
+    public void setCardOffer(java.util.function.BiConsumer<UUID, Integer> offer) { this.cardOffer = offer == null ? (player, mob) -> { } : offer; }
     Journal journal() { return journal; }
+    /** Запись в историю админки от соседних служб (игра в 21). */
+    public void event(String kind, UUID player, String playerName, UUID mob, String mobName, String species, String text, Map<String, Object> data) {
+        journal.event(kind, player, playerName, mob, mobName, species, text, data);
+    }
     int nextClipId() { return clipIds.incrementAndGet(); }
     MobTalkConfig config() { return bridge.config(); }
 
@@ -233,19 +248,37 @@ public final class DialogueService {
         Session session = session(player);
         if (text == null || text.isBlank()) { refuse(session, "Речь не распознана: удерживайте голосовую клавишу и произнесите вопрос"); return; }
         if (!"server".equals(session.stt) || !fromVoice) session.stt = fromVoice ? "local" : "text";
+        if (confession.takes(player)) { onServer(() -> confession.heard(player, text)); return; } // Б4: слова исповеди — тайна, не в разговор.
         if (options.family && options.ceremony && wedding.takesVow(player)) { onServer(() -> wedding.vowHeard(player, text)); return; } // Клятва — службе, не в разговор.
+        // Одиночка: службу ведёт клиент, а речь распознал сервер — клятва уходит клиентской службе, иначе она терялась в разговоре.
+        if (options.family && !options.ceremony && fromVoice && LOCAL_VOW != null && LOCAL_VOW.test(player, text)) return;
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
             if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился")); return; }
-            if (!mob.id().equals(session.target)) select(session, mob);
-            readyForRequest(session, mob).thenAccept(ready -> onServer(() -> {
-                if (!ready) return;
-                PlayerBudget.Verdict verdict = budget.get().allow(player, PlayerBudget.Kind.DIALOGUE);
-                if (!verdict.allowed()) { refuse(session, verdict.reason()); return; }
-                stopFloor(session);
-                long generation = ++session.generation;
-                request(session, generation, mob, null, options.pictures ? picture : null)
-                        .thenAccept(request -> onServer(() -> submit(session, request, text)));
-            }));
+            if (io.github.mobtalk.core.Confession.asks(text) || io.github.mobtalk.core.Confession.returns(text)) {
+                // Б4: «хочу исповедаться» иерею — исповедь, а не разговор (и не в память); прочим жителям — обычный ответ.
+                bridge.confessionAsk(mob.id(), player, text).whenComplete((answer, failure) -> onServer(() -> {
+                    if (failure == null && answer != null && answer.handled()) {
+                        if (!mob.id().equals(session.target)) select(session, mob);
+                        confession.answered(player, mob, text, answer);
+                    } else converse(session, mob, text, picture);
+                }));
+                return;
+            }
+            converse(session, mob, text, picture);
+        }));
+    }
+    /** Обычный разговор: собеседник выбран, готовность, бюджет, запрос. */
+    private void converse(Session session, MobView mob, String text, byte[] picture) {
+        UUID player = session.player;
+        if (!mob.id().equals(session.target)) select(session, mob);
+        readyForRequest(session, mob).thenAccept(ready -> onServer(() -> {
+            if (!ready) return;
+            PlayerBudget.Verdict verdict = budget.get().allow(player, PlayerBudget.Kind.DIALOGUE);
+            if (!verdict.allowed()) { refuse(session, verdict.reason()); return; }
+            stopFloor(session);
+            long generation = ++session.generation;
+            request(session, generation, mob, null, options.pictures ? picture : null)
+                    .thenAccept(request -> onServer(() -> submit(session, request, text)));
         }));
     }
     /** Аудио на распознавание сервером (трек B даёт службу; заглушка отказывает). */
@@ -395,7 +428,7 @@ public final class DialogueService {
     private void tickNow() {
         if (closed) return;
         ticks++;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         for (Session session : sessions.values()) {
             if (!session.ready.isEmpty()) playNextWitness(session);
             if (session.deferred != null && !session.voiceOn()) runDeferredAction(session);
@@ -412,6 +445,7 @@ public final class DialogueService {
         }
         spontaneous.tick(ticks);
         if (options.family && options.ceremony) wedding.tick();
+        confession.tick();
     }
     private Map<UUID, BargainMeter.Move> bargainFor(Session session, long now) {
         session.bargainUntil.entrySet().removeIf(e -> e.getValue() < now);
@@ -687,7 +721,7 @@ public final class DialogueService {
 
     private void finishDelivery(Session session, Request request, ConversationEngine.Reply reply, String actionMessage, boolean shownEarly) {
         session.requestActive = false;
-        if (request.overheard == null) { session.conversationMob = request.target; session.lastReplyMillis = System.currentTimeMillis(); }
+        if (request.overheard == null) { session.conversationMob = request.target; session.lastReplyMillis = MobClock.now(); }
         boolean spontaneousLine = request.overheard != null && request.overheard.spontaneous();
         String kind = request.overheard == null ? MobSpeechS2C.ANSWER : request.overheard.kind() == ConversationEngine.Overheard.Kind.BYSTANDER ? MobSpeechS2C.WITNESS : MobSpeechS2C.INITIATIVE;
         if (spontaneousLine) spontaneous.spoken(session, request.target, request.overheard, request.generation, reply);
@@ -716,9 +750,14 @@ public final class DialogueService {
                     : spontaneousLine ? reply.speakerName() + " заговаривает…" : reply.speakerName() + " вмешивается…");
         } else if (!session.voiceOn()) session.status(READY);
         if (actionMessage != null && !actionMessage.isBlank()) out.chat(request.player, "[Mob Talk] " + actionMessage);
+        if (request.overheard == null && reply.gameOffer()) {
+            journal.event("cards", request.player, request.playerName, request.target, reply.speakerName(), request.snapshot == null ? "" : request.snapshot.type(),
+                    reply.speakerName() + " зовёт " + request.playerName + " сыграть в 21", Map.of("said", reply.recognizedText()));
+            cardOffer.accept(request.player, request.mobEntityId);
+        }
         if (request.overheard == null) {
             BargainMeter.Move move = BargainMeter.move(reply.bargain(), reply.deal(), request.snapshot, reply.recognizedText());
-            if (move != null) { session.bargainMoves.put(request.target, move); session.bargainUntil.put(request.target, System.currentTimeMillis() + BARGAIN_HUD_MILLIS); }
+            if (move != null) { session.bargainMoves.put(request.target, move); session.bargainUntil.put(request.target, MobClock.now() + BARGAIN_HUD_MILLIS); }
             if (reply.bargain().type() != BargainIntent.Type.NONE || reply.deal().type() != DealIntent.Type.NONE)
                 journal.event("trade", request.player, request.playerName, request.target, reply.speakerName(), request.snapshot == null ? "" : request.snapshot.type(),
                         request.playerName + " ↔ " + reply.speakerName() + ": " + tradeWords(reply.bargain(), reply.deal()) + (actionMessage == null || actionMessage.isBlank() ? "" : " — " + actionMessage),
@@ -779,7 +818,7 @@ public final class DialogueService {
                     LOGGER.info("Mob Talk: clip {} for {} listeners: {} bytes ({} ms, {} crossings/s)", clipId, audience.size(), data.length, millis, SpeechStream.crossingsPerSecond(data));
                     SpeechService.Clip clip = new SpeechService.Clip(clipId, PCM_FORMAT, data, millis);
                     for (UUID listener : audience) out.clip(listener, clip);
-                    session.floorUntil = Math.max(session.floorUntil, System.currentTimeMillis() + millis + 250);
+                    session.floorUntil = Math.max(session.floorUntil, MobClock.now() + millis + 250);
                     session.speakingMob = request.target;
                 });
             });

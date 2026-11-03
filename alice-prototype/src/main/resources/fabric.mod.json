@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "alicespeaker",
+  "version": "${version}",
+  "name": "Alice Speaker (прототип)",
+  "description": "Эксперимент: колонка в мире, которая отвечает настоящей Алисой через неофициальный веб-протокол Яндекса.",
+  "authors": ["BigZet"],
+  "license": "GPL-3.0-only",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["io.github.alicespeaker.AliceSpeakerMod"],
+    "client": ["io.github.alicespeaker.client.AliceSpeakerClient"]
+  },
+  "depends": { "fabricloader": ">=0.19.5", "minecraft": "1.21.1", "java": ">=21", "fabric-api": "*" }
+}

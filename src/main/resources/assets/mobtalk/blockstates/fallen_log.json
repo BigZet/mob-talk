@@ -1,0 +1,60 @@
+{
+  "variants": {
+    "axis=z,wood=oak": {
+      "model": "mobtalk:block/fallen_log_oak"
+    },
+    "axis=x,wood=oak": {
+      "model": "mobtalk:block/fallen_log_oak",
+      "y": 90
+    },
+    "axis=z,wood=spruce": {
+      "model": "mobtalk:block/fallen_log_spruce"
+    },
+    "axis=x,wood=spruce": {
+      "model": "mobtalk:block/fallen_log_spruce",
+      "y": 90
+    },
+    "axis=z,wood=birch": {
+      "model": "mobtalk:block/fallen_log_birch"
+    },
+    "axis=x,wood=birch": {
+      "model": "mobtalk:block/fallen_log_birch",
+      "y": 90
+    },
+    "axis=z,wood=jungle": {
+      "model": "mobtalk:block/fallen_log_jungle"
+    },
+    "axis=x,wood=jungle": {
+      "model": "mobtalk:block/fallen_log_jungle",
+      "y": 90
+    },
+    "axis=z,wood=acacia": {
+      "model": "mobtalk:block/fallen_log_acacia"
+    },
+    "axis=x,wood=acacia": {
+      "model": "mobtalk:block/fallen_log_acacia",
+      "y": 90
+    },
+    "axis=z,wood=dark_oak": {
+      "model": "mobtalk:block/fallen_log_dark_oak"
+    },
+    "axis=x,wood=dark_oak": {
+      "model": "mobtalk:block/fallen_log_dark_oak",
+      "y": 90
+    },
+    "axis=z,wood=mangrove": {
+      "model": "mobtalk:block/fallen_log_mangrove"
+    },
+    "axis=x,wood=mangrove": {
+      "model": "mobtalk:block/fallen_log_mangrove",
+      "y": 90
+    },
+    "axis=z,wood=cherry": {
+      "model": "mobtalk:block/fallen_log_cherry"
+    },
+    "axis=x,wood=cherry": {
+      "model": "mobtalk:block/fallen_log_cherry",
+      "y": 90
+    }
+  }
+}

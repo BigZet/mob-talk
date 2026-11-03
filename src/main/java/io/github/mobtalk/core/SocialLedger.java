@@ -45,6 +45,14 @@ public final class SocialLedger {
             if (fitting.isBlank()) fitting = SpeciesCatalog.voiceFor(p.type, gender, p.id).id();
             if (!fitting.isBlank() && !fitting.equals(p.voiceId)) { p.voiceId = fitting; changed = true; }
         }
+        // A child of the family speaks in a child's voice until it grows up; then a grown voice of its sex.
+        if (!custom && VillagerVoices.child(p.social) && !VillagerVoices.kid(p.voiceId)) {
+            String kid = VillagerVoices.kid(p.id, gender);
+            if (!kid.isBlank()) { p.voiceId = kid; changed = true; }
+        } else if (!custom && !VillagerVoices.child(p.social) && VillagerVoices.kid(p.voiceId)) {
+            String grown = VillagerVoices.pick(gender, VoiceAge.YOUNG, p.id, others == null ? List.of() : others);
+            if (!grown.isBlank()) { p.voiceId = grown; changed = true; }
+        }
         return changed;
     }
     /** Old worlds: the biography writer renamed villagers without knowing their sex («Валентина» with a man's body and voice). The sex
@@ -59,6 +67,30 @@ public final class SocialLedger {
         p.backstory = "";
         return true;
     }
+    /** Имя жителя, каким его знают в мире; у незнакомца профиль (пол, характер, имя) заводится сейчас. "" — слой выключен. */
+    public String named(UUID villager, String observedName) {
+        synchronized (store) {
+            ConversationStore.Profile p = store.ensure(villager, "minecraft:villager", observedName == null ? "Житель" : observedName);
+            return p.givenName == null ? "" : p.givenName;
+        }
+    }
+
+    /** Исповедь: настоятель храма Божественного блока — всегда мужчина с именем из святцев («отец Сергий»), мужским голосом. Ставится
+     * один раз; повтор ничего не меняет. */
+    public void ordain(UUID villager, String name) {
+        synchronized (store) {
+            ConversationStore.Profile p = store.ensure(villager, "minecraft:villager", name == null || name.isBlank() ? "Житель" : name);
+            boolean changed = false;
+            if (p.social == null) { p.social = SocialProfile.of(villager, false); temper(p); changed = true; }
+            if (p.social.gender() != Gender.MALE) { p.social.gender = Gender.MALE.name(); p.voiceId = ""; changed = true; }
+            if (name != null && !name.isBlank() && !name.equals(p.givenName)) { p.givenName = name.strip(); p.backstory = ""; changed = true; }
+            if (!changed) return;
+            adopt(p, store.config(), store.state.profiles.values());
+            p.revision++;
+            store.scheduleSave();
+        }
+    }
+
     /** The character's one-time shift of the temperament. */
     static void temper(ConversationStore.Profile p) {
         Persona persona = p.social.persona();
@@ -67,9 +99,9 @@ public final class SocialLedger {
     }
     private static int shifted(int value, int shift) { return value < 0 ? value : Math.max(0, Math.min(100, value + shift)); }
 
-    /** The rest point of the mood axis moved by the character (gloomy lower, cheerful higher). */
+    /** The rest point of the mood axis moved by the character (gloomy lower, cheerful higher); a woman's state speaks in the feminine. */
     static MobState.Baseline baseline(ConversationStore.Profile p, MobState.Baseline base) {
-        return p == null || p.social == null ? base : base.moodShifted(p.social.persona().moodRest);
+        return p == null || p.social == null ? base : base.moodShifted(p.social.persona().moodRest).asFemale(p.social.gender() == Gender.FEMALE);
     }
 
     /** Whether the villager counts as grown up: not a vanilla baby, and past the teen stage when the family tree tracks its growth. */
@@ -133,7 +165,8 @@ public final class SocialLedger {
             if (courtship.partners()) rolled.put(Gesture.DIVORCE, new GestureIntent(Gesture.DIVORCE, Gesture.Outcome.ACCEPTED,
                     courtship == Courtship.MARRIED ? DIVORCE_HEARTS : BREAKUP_HEARTS, "", courtship.name()));
             if (courtship == Courtship.MARRIED && config.familyLife) {
-                String refusal = SocialPrompt.childRefusal(score, p.social.has(VillagerTrait.INFERTILE), p.social.expectingTick >= 0,
+                String refusal = SocialPrompt.childRefusal(score, p.social.has(VillagerTrait.INFERTILE), p.social.expectingTick > 0 || p.social.conceivedTick >= 0,
+                        p.social.expectingTick == 0 && p.social.conceivedTick < 0,
                         rapport.lastChildMillis >= 0 && now - rapport.lastChildMillis < ChildGrowth.CHILD_COOLDOWN_MILLIS);
                 rolled.put(Gesture.CHILD, new GestureIntent(Gesture.CHILD, refusal == null ? Gesture.Outcome.ACCEPTED : Gesture.Outcome.REFUSED,
                         refusal == null ? DATE_HEARTS : 0, "", refusal == null ? "" : refusal));
@@ -202,8 +235,9 @@ public final class SocialLedger {
             ConversationStore.Profile p = store.ensure(mob, type, name);
             if (p.social == null) return null;
             ConversationStore.Relation r = rapport(p, player);
-            GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+            GestureIntent intent = fed(mob, p, r, item, gift(p, r.rapport, item, profession, child, now), now);
             apply(p, r, player, playerName, intent, config, now);
+            meal(mob, item, intent, player, playerName, now);
             p.revision++; // Like a blow or help: a reply written before the gift landed is stale.
             store.scheduleSave();
             return intent;
@@ -222,8 +256,9 @@ public final class SocialLedger {
                 ConversationStore.Profile p = store.ensure(mob, type, name);
                 if (p.social == null) return null;
                 ConversationStore.Relation r = rapport(p, player);
-                GestureIntent intent = gift(p, r.rapport, item, profession, child, now);
+                GestureIntent intent = fed(mob, p, r, item, gift(p, r.rapport, item, profession, child, now), now);
                 apply(p, r, player, playerName, intent, config, now);
+                meal(mob, item, intent, player, playerName, now);
                 p.revision++; store.scheduleSave();
                 return intent;
             }
@@ -245,7 +280,9 @@ public final class SocialLedger {
             r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
             r.rapport.record(Gesture.GIFT, now, intent.hearts() != 0);
             if (intent.takesItem()) r.rapport.gave(item, now);
-            ConversationStore.feel(p, r, intent.takesItem() ? MobState.Event.GIFT_LIKED : MobState.Event.GIFT_SPURNED, now);
+            ConversationStore.feel(p, r, intent.takesItem() ? MobState.Event.GIFT_LIKED : MobState.Event.GIFT_SPURNED, now, playerName);
+            // Food for a hungry villager is a meal, not just a present.
+            if (intent.takesItem() && Hunger.meal(item) != null && store.hunger(mob, now) != Hunger.Level.FED) store.meal(mob, Hunger.meal(item), playerName, player, playerName, now);
             ConversationStore.event(p, now, "Игрок " + TextBounds.characters(playerName, 60) + (intent.takesItem() ? " подарил тебе " : " предлагал тебе ") + item
                     + (intent.note().isBlank() ? "" : " (" + intent.note() + ")") + (intent.takesItem() ? "; отношение " + r.score : ", ты не взял"), 4);
             p.revision++; store.scheduleSave();
@@ -269,6 +306,16 @@ public final class SocialLedger {
         return r;
     }
     /** The effects of one gesture on one relation; under the store lock. */
+    /** A hungry villager takes food even when the same present would bore it: hunger is not a matter of taste. */
+    private GestureIntent fed(UUID mob, ConversationStore.Profile p, ConversationStore.Relation r, String item, GestureIntent intent, long now) {
+        if (intent.takesItem() || Hunger.meal(item) == null || store.hunger(mob, now) == Hunger.Level.FED
+                || p.hostile() || r.score <= CombatRules.HATRED) return intent;
+        return new GestureIntent(Gesture.GIFT, Gesture.Outcome.GOOD, Math.max(0, intent.hearts()), item, "накормил в голод");
+    }
+    /** Food a hungry villager took is a meal: the hunger ends (the gift alone only warmed the heart). */
+    private void meal(UUID mob, String item, GestureIntent intent, UUID player, String playerName, long now) {
+        if (intent.takesItem() && Hunger.meal(item) != null && store.hunger(mob, now) != Hunger.Level.FED) store.meal(mob, Hunger.meal(item), playerName, player, playerName, now);
+    }
     private void apply(ConversationStore.Profile p, ConversationStore.Relation r, UUID player, String playerName, GestureIntent intent, MobTalkConfig config, long now) {
         r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
         r.rapport.record(intent.gesture(), now, intent.hearts() != 0);
@@ -379,8 +426,12 @@ public final class SocialLedger {
         synchronized (store) {
             ConversationStore.State state = store.state;
             boolean inTree = state.family.known(dead);
-            // Even a villager with no relatives is struck off: the village's standing counts the living only.
-            if (!inTree) { if (state.profiles.containsKey(dead.toString())) { state.family.markDead(dead, deadName); store.scheduleSave(); } return List.of(); }
+            ConversationStore.Profile deadProfile = state.profiles.get(dead.toString());
+            // Even a villager with no relatives is struck off: the village's standing counts the living only. Its neighbours grieve too.
+            if (!inTree) {
+                if (deadProfile != null) { state.family.markDead(dead, deadName); store.villageFeel(deadProfile.villageId, Set.of(dead), MobState.Event.VILLAGE_DEATH, deadName, now); store.scheduleSave(); }
+                return List.of();
+            }
             Gender deadGender = deadGender(state, dead);
             List<Mourner> mourners = new ArrayList<>();
             for (Map.Entry<UUID, FamilyTree.Link> entry : state.family.died(dead).entrySet()) {
@@ -396,11 +447,16 @@ public final class SocialLedger {
                     ConversationStore.event(q, now, "Игрок " + TextBounds.characters(killerName, 60) + " убил твоего родного (" + word + " " + deadName + "); отношение " + r.score, 5);
                 } else ConversationStore.event(q, now, "Погиб твой родной: " + word + " " + deadName, 5);
                 ConversationStore.Relation felt = r != null ? r : q.relations.values().stream().findFirst().orElse(null);
-                if (felt != null) ConversationStore.feel(q, felt, MobState.Event.BEREAVED, now);
-                else q.state.shift(MobState.Event.BEREAVED, ConversationStore.baseline(q, 0), now);
+                if (felt != null) ConversationStore.feel(q, felt, MobState.Event.BEREAVED, now, deadName);
+                else q.state.shift(MobState.Event.BEREAVED, ConversationStore.baseline(q), now, deadName);
                 if (entry.getValue() == FamilyTree.Link.SPOUSE) ConversationStore.event(q, now, "Ты овдовел: " + word + " " + deadName + " погиб", 5);
                 q.revision++;
                 mourners.add(new Mourner(q.id, word));
+            }
+            if (deadProfile != null) {
+                Set<UUID> family = new HashSet<>(); family.add(dead);
+                for (Mourner m : mourners) family.add(m.id());
+                store.villageFeel(deadProfile.villageId, family, MobState.Event.VILLAGE_DEATH, deadName, now);
             }
             store.scheduleSave();
             return mourners;
@@ -459,16 +515,26 @@ public final class SocialLedger {
             ConversationStore.Profile kid = store.ensure(child, "minecraft:villager", "Житель");
             if (kid.social == null) kid.social = SocialProfile.of(child, true);
             kid.social.gender = newborn.gender().name(); kid.social.persona = newborn.persona().name();
+            // The profile got a name from the sex its UUID suggests; the newborn's own sex (or the name its parents chose) wins.
+            String chosen = "";
+            for (ConversationStore.Profile parent : new ConversationStore.Profile[]{pa, pb})
+                if (chosen.isBlank() && parent != null && parent.social != null && !parent.social.babyName.isBlank()) chosen = parent.social.babyName;
+            Gender chosenSex = chosen.isBlank() ? null : VillagerNames.soundsLike(chosen);
+            if (!chosen.isBlank() && (chosenSex == null || chosenSex == newborn.gender())) kid.givenName = chosen;
+            else if (VillagerNames.sexOf(kid.givenName) != null && VillagerNames.sexOf(kid.givenName) != newborn.gender())
+                kid.givenName = VillagerNames.pick(child, newborn.gender(), VillagerNames.wear(state.profiles.values(), child, kid.villageId));
             kid.social.traits = new ArrayList<>(newborn.traits().stream().map(Enum::name).toList());
-            kid.social.bornTick = worldTick; kid.social.stage = ChildGrowth.Stage.INFANT.name();
+            kid.social.bornTick = worldTick; kid.social.stage = ChildGrowth.Stage.INFANT.name(); kid.social.age = VoiceAge.YOUNG.name();
+            String kidVoice = VillagerVoices.kid(child, newborn.gender());
+            if (!kidVoice.isBlank()) kid.voiceId = kidVoice;
             kid.calm = newborn.calm(); kid.confidence = newborn.confidence(); kid.curiosity = newborn.curiosity(); kid.sociability = newborn.sociability();
             Gender ga = gender(state, pa, a, config), gb = gender(state, pb, b, config);
             boolean aMother = ga == Gender.FEMALE || gb == Gender.MALE;
-            state.family.addChild(child, "", newborn.gender(), aMother ? a : b, aMother ? b : a);
+            state.family.addChild(child, kid.givenName, newborn.gender(), aMother ? a : b, aMother ? b : a);
             for (ConversationStore.Profile parent : new ConversationStore.Profile[]{pa, pb}) {
                 if (parent == null) continue;
                 if (parent.social != null && parent.social.expectingTick >= 0) parent.social.clearExpecting();
-                parent.state.shift(MobState.Event.CHILD_BORN, ConversationStore.baseline(parent, 0), now);
+                parent.state.shift(MobState.Event.CHILD_BORN, ConversationStore.baseline(parent), now);
                 ConversationStore.event(parent, now, "У тебя родился ребёнок: " + newborn.gender().offspring, 5);
                 parent.revision++;
             }
@@ -481,6 +547,8 @@ public final class SocialLedger {
             }
             ConversationStore.event(kid, now, "Ты родился в семье: " + String.join(", ", state.family.kin(child).stream()
                     .map(k -> k.word() + (k.name().isBlank() ? "" : " " + k.name())).toList()), 5);
+            ConversationStore.Profile home = pa != null && !pa.villageId.isBlank() ? pa : pb;
+            if (home != null) store.villageFeel(home.villageId, List.of(a, b, child), MobState.Event.VILLAGE_BIRTH, "", now);
             store.scheduleSave();
             return newborn.gender();
         }
@@ -505,7 +573,10 @@ public final class SocialLedger {
                 ConversationStore.Profile p = store.state.profiles.get(id.toString());
                 if (p == null || p.social == null || p.social.bornTick < 0) continue;
                 ChildGrowth.Stage stage = ChildGrowth.stage(worldTick - p.social.bornTick, days);
-                if (!stage.name().equals(p.social.stage)) { p.social.stage = stage.name(); p.revision++; changed = true; }
+                if (!stage.name().equals(p.social.stage)) {
+                    p.social.stage = stage.name(); p.revision++; changed = true;
+                    if (stage == ChildGrowth.Stage.ADULT) adopt(p, store.config(), store.state.profiles.values()); // a grown voice
+                }
                 stages.put(id, stage);
             }
             if (changed) store.scheduleSave();
@@ -559,7 +630,7 @@ public final class SocialLedger {
             ConversationStore.Profile p = mob == null ? null : store.state.profiles.get(mob.toString());
             if (p == null || p.social == null) return "";
             ConversationStore.Relation r = player == null ? null : p.relations.get(player.toString());
-            long now = System.currentTimeMillis();
+            long now = MobClock.now();
             StringBuilder line = new StringBuilder(p.social.gender().adult).append(", ").append(p.social.persona().word);
             for (VillagerTrait trait : p.social.traits()) line.append(", ").append(trait.name().toLowerCase(Locale.ROOT));
             ChildGrowth.Stage stage = ChildGrowth.Stage.of(p.social.stage);

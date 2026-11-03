@@ -28,6 +28,7 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 
 ## 2. Как собирать, тестировать и ставить
 
+- Порядок тестирования доработок (3 уровня: доработка, мод, сборка; модели): docs/testing-strategy.md.
 - Сборка и тесты: `.\gradlew.bat test build` (Windows PowerShell), сейчас 313 тестов, 2 живых пропускаются
   без `MOBTALK_LIVE=1`.
 - Установка в Prism только при закрытой игре (нет процесса `javaw.exe`):
@@ -64,6 +65,13 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
   Mob Talk на Y/U/K, голосовой чат — Caps Lock. Установщик: `scripts\build-installer.ps1 -ServerAddress <адрес>` →
   zip с `install-windows.bat`, `install-macos.command` и `.mrpack` (docs/install-players.md, docs/server.md).
 
+- **Исповедь у священника (идея Б4, 25 октября 2026, docs/confession.md).** Сделана в двух модах: Mob Talk ведёт сцену (иерей —
+  клирик-мужчина или настоятель храма с тегом `divineblock_abbot`, аналой или кафедра, увещание и разрешительная молитва по Требнику,
+  до трёх заходов голосом до 60 с или текстом, епитимья в HUD, тайна — реплики только исповеднику), Божественный блок — грехи и числа
+  (`Absolution`, операции `soul_deeds`/`absolve`/`absolve_rest`/`absolve_release`, настоятели `Abbots`, F9 «Исповедь»). Настройки —
+  F7 «Социум → Исповедь», админка (лента «Исповеди», епитимья у души). Самотест сервера: `run-server-play-selftest.ps1 -Only confession`
+  (или весь сценарий — шаги исповеди перед выходом игрока). Хвосты — в docs/confession.md «Не сделано».
+
 ## 3. Что сделано (всё в main, установлено в Prism, самотест пройден)
 
 Подтверждено самотестом в игре: диалог голосом и текстом с озвучкой, очевидцы и штрафы, ненависть
@@ -87,6 +95,25 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 21 октября: деревни мода CTOV (ChoiceTheorem's Overhauled Village 3.6.3 + Lithostitched 1.8.1, CC BY-NC-ND, ставится только отдельным jar), docs/ctov.md. Постройки CTOV называются по-русски (`Structures`), деревня Mob Talk помнит свою постройку (`Village.site`, `VillageSites`, F7 «Деревня — по постройкам»; старые деревни по старому правилу 160 блоков), поиск деревни по позиции на сервере (`MobGameBridge.villageAt`), свадьба на площади у колокола: только клетки, куда дойти пешком, не крыши, поворот вдоль узкой улицы, арка не в стенах. Тестовый инстанс `mob-talk-ctov` (копия основного с CTOV); этап `run-selftest.ps1 -Only ctov -Base mob-talk-ctov` проходит целиком (и с людьми-жителями). Полные прогоны: с CTOV 149 OK / 11 FAIL, без CTOV 134 OK / 11 FAIL — сбои в особой ночи, сне вместе, корове-очевидце и подарках корове, кольце в руке, ключах DPAPI под нагрузкой; CTOV-кода не касаются. CTOV в основной инстанс `1.21.1-fabric-dev` не поставлен: ждёт согласия Дмитрия.
 
 24 октября: оверлей для OBS (docs/overlay.md): страница на клиенте стримера `127.0.0.1:8790/overlay/`, пакет `overlay_state` с сервера, настройки F7 «Оверлей для стрима», права в F9. Божественный блок отдаёт состояние операцией `overlay` (ветка divine-block `bigzet/overlay`), со старой версией работает запасной путь. В игре глазами не проверено.
+
+### Игра в 21 с жителем (из ветки `claude/project-thread-426kyh`, в main отдельно от казино)
+
+Дизайн и этапы в docs/cards-21.md. Правила (очко и блэкджек) без MC в `core/cards`, учёт в `core/CardLedger`
+(кошельки жителей, залоги, долги, история сессий, интерес, скидки, слухи о шулере), стол на сервере в
+`server/CardTableService` (порты World/Outbox/Talk, тесты `CardTableServiceTest`), MC-обвязка в
+`game/CardTables` (колода `mobtalk:card_deck` у картографа и крафтом, ПКМ по жителю, `/mobtalk cards`),
+экран `client/cards/CardTableScreen` (атлас и стол рисует `tools/cards_art.py`, звуки `tools/cards_sounds.py`).
+Реплики жителя — `core/CardLines` на фоновой модели с готовыми запасными фразами; приглашение словами — поле
+`game: OFFER` в ответе диалога. До 4 игроков и зрители на выделенном сервере.
+
+Настройки F7, вкладка «Социальное», группа «Игра в 21»: серверные `cards`, `cardsVariant`, `cardsItemStakes`,
+`cardsCheating` и числа `cards*` (Tunables); личные `tableInvite`, `tableLines` (key/round/never), `tableSpeed`
+(normal/fast/off), `tableVolume`, `tableHint` (префикс `table` в `SettingsScope`). Админка: партии в «Истории»
+(вид `cards`), кошелёк, манера и последние партии в карточке жителя.
+
+Проверка: `run-selftest.ps1 -Only cards` (одиночка, снимки), `-Only servercards` (сервер + 2 клиента),
+`-Only cardsprep` готовит мир для ручной игры. Ручной инстанс «Mob Talk — игра в 21 (тест)»
+(`mob-talk-cards21`, мир `cards21`). Озвучки реплик стола нет.
 
 ## 4. Дорожная карта (согласована с пользователем, не начата)
 
@@ -143,6 +170,10 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
   Славянской церкви на тестовом сервере.
 - Whisper: дообучение дало выигрыш только для CPU; на GPU оставлен large-v3; медленное распознавание в
   игре скорее от нехватки VRAM (OBS, llama-server), чем от модели.
+- Код-ревью 3 ноября 2026: 11 исправлений слиты (генерация чанков в тике в DivineController/VillageTowers/
+  CasinoLife, чужие измерения баров, проводка clearRuntime, память карт, суммарии forgetStale, сброс
+  оверлея, мёртвые lang-ключи `mobtalk.voice.path.*` удалены). Остаток: `SpeechClips` (клиентский буфер
+  стриминга речи с сервера) собран, но не подключён — задел по docs/server-voice.md, не удалять.
 
 ## 6. Рабочие правила сессии (из памяти Claude Code)
 

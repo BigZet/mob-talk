@@ -3,6 +3,8 @@
   "values": [
     "mobtalk:archer_post",
     "mobtalk:guard_post",
-    "mobtalk:crossbow_post"
+    "mobtalk:crossbow_post",
+    "mobtalk:casino_rope",
+    "mobtalk:official_desk"
   ]
 }

@@ -1,0 +1,242 @@
+{
+  "parent": "block/block",
+  "textures": {
+    "particle": "minecraft:block/barrel_side",
+    "side": "minecraft:block/barrel_side",
+    "lid": "minecraft:block/barrel_top",
+    "wood": "minecraft:block/dark_oak_planks",
+    "brass": "minecraft:block/gold_block"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        0,
+        2
+      ],
+      "to": [
+        14,
+        3,
+        4
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wood"
+        },
+        "south": {
+          "texture": "#wood"
+        },
+        "east": {
+          "texture": "#wood"
+        },
+        "west": {
+          "texture": "#wood"
+        },
+        "up": {
+          "texture": "#wood"
+        },
+        "down": {
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        0,
+        12
+      ],
+      "to": [
+        14,
+        3,
+        14
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wood"
+        },
+        "south": {
+          "texture": "#wood"
+        },
+        "east": {
+          "texture": "#wood"
+        },
+        "west": {
+          "texture": "#wood"
+        },
+        "up": {
+          "texture": "#wood"
+        },
+        "down": {
+          "texture": "#wood"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        2,
+        1
+      ],
+      "to": [
+        14,
+        14,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lid",
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ]
+        },
+        "south": {
+          "texture": "#lid",
+          "uv": [
+            2,
+            2,
+            14,
+            14
+          ]
+        },
+        "east": {
+          "texture": "#side",
+          "uv": [
+            1,
+            2,
+            15,
+            14
+          ],
+          "rotation": 90
+        },
+        "west": {
+          "texture": "#side",
+          "uv": [
+            1,
+            2,
+            15,
+            14
+          ],
+          "rotation": 90
+        },
+        "up": {
+          "texture": "#side",
+          "uv": [
+            2,
+            1,
+            14,
+            15
+          ]
+        },
+        "down": {
+          "texture": "#side",
+          "uv": [
+            2,
+            1,
+            14,
+            15
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7,
+        5,
+        -1
+      ],
+      "to": [
+        9,
+        7,
+        1
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass"
+        },
+        "south": {
+          "texture": "#brass"
+        },
+        "east": {
+          "texture": "#brass"
+        },
+        "west": {
+          "texture": "#brass"
+        },
+        "up": {
+          "texture": "#brass"
+        },
+        "down": {
+          "texture": "#brass"
+        }
+      }
+    },
+    {
+      "from": [
+        7,
+        3.5,
+        -2
+      ],
+      "to": [
+        9,
+        5.5,
+        -1
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass"
+        },
+        "south": {
+          "texture": "#brass"
+        },
+        "east": {
+          "texture": "#brass"
+        },
+        "west": {
+          "texture": "#brass"
+        },
+        "up": {
+          "texture": "#brass"
+        },
+        "down": {
+          "texture": "#brass"
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        7,
+        -0.5
+      ],
+      "to": [
+        8.5,
+        10,
+        0.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#wood"
+        },
+        "south": {
+          "texture": "#wood"
+        },
+        "east": {
+          "texture": "#wood"
+        },
+        "west": {
+          "texture": "#wood"
+        },
+        "up": {
+          "texture": "#wood"
+        },
+        "down": {
+          "texture": "#wood"
+        }
+      }
+    }
+  ]
+}

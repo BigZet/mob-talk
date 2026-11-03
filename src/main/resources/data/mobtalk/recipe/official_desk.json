@@ -1,0 +1,15 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "pattern": [
+  "GGG",
+  "PBP",
+  "P P"
+ ],
+ "key": {
+  "G": { "item": "minecraft:green_carpet" },
+  "P": { "item": "minecraft:dark_oak_planks" },
+  "B": { "item": "minecraft:book" }
+ },
+ "result": { "id": "mobtalk:official_desk", "count": 1 }
+}

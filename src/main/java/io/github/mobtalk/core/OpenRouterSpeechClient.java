@@ -194,7 +194,7 @@ final class OpenRouterSpeechClient implements AutoCloseable {
             throw new IOException("Для озвучки нужны голос и текст.");
         JsonObject body = new JsonObject();
         body.addProperty("model", model());
-        body.addProperty("input", text);
+        body.addProperty("input", SpeechTags.forSpeech(text, model(), config.ttsTags));
         body.addProperty("voice", voiceId);
         // Both providers speak the OpenAI shape: "pcm" is 24 kHz signed 16-bit mono; other formats are decoded after download.
         String format = format();

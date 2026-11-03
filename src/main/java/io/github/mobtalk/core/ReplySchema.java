@@ -4,6 +4,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.List;
+import java.util.Map;
 
 /** The strict JSON shapes the model must return, and the small JSON helpers every request body shares. */
 final class ReplySchema {
@@ -52,6 +53,21 @@ final class ReplySchema {
         return format("mob_reply", objectSchema(properties, required.toArray(String[]::new)));
     }
 
+    /** Игра в 21: взрослый житель (не священник) может позвать игрока за карточный стол или согласиться сыграть. */
+    static boolean offersCards(MobSnapshot snapshot) {
+        if (snapshot == null || !"minecraft:villager".equals(snapshot.type())) return false;
+        Map<String, Object> details = snapshot.mobDetails();
+        return !Boolean.TRUE.equals(details.get("baby")) && !"minecraft:cleric".equals(details.get("profession"))
+                && details.get("cardGame") instanceof Map<?, ?> game && Boolean.TRUE.equals(game.get("cardsEnabled"));
+    }
+    /** Поле {@code game} (NONE|OFFER) в схеме ответа, когда житель может сесть за карты. */
+    static void addGame(JsonObject format, MobSnapshot snapshot) {
+        if (!offersCards(snapshot)) return;
+        JsonObject schema = format.getAsJsonObject("json_schema").getAsJsonObject("schema");
+        JsonObject game = property("string"); game.add("enum", strings("NONE", "OFFER"));
+        schema.getAsJsonObject("properties").add("game", game);
+        schema.getAsJsonArray("required").add("game");
+    }
     /** The importance the answer gave its new fact, clamped to 1–5; {@link MemoryFact#ORDINARY} when absent or not a number. */
     static int importance(JsonObject answer) {
         try { return MemoryFact.clamp(integer(answer, "importance")); }

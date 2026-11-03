@@ -1,5 +1,6 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
 import com.google.gson.JsonObject;
 import io.github.mobtalk.core.ConversationEngine;
 import io.github.mobtalk.core.SpeechStream;
@@ -55,7 +56,7 @@ final class WeddingHost {
     void tick() {
         WeddingView now = bridge.wedding();
         if (now == null) { if (ceremony != null) { reportOutcome(); reset(); } return; }
-        if (ceremony != now.ceremony()) { reportOutcome(); reset(); ceremony = now.ceremony(); ceremonySince = System.currentTimeMillis(); ceremonyReported = false; }
+        if (ceremony != now.ceremony()) { reportOutcome(); reset(); ceremony = now.ceremony(); ceremonySince = MobClock.now(); ceremonyReported = false; }
         view = now;
         if (ceremony.over()) reportOutcome();
         requestScript();
@@ -116,7 +117,7 @@ final class WeddingHost {
         service.pool().submit(DialoguePool.Priority.ANSWER, () -> {
             boolean consents;
             try { consents = decider.consents(question, text); } catch (RuntimeException failure) { consents = !Wedding.refuses(text); }
-            target.vow(text, !consents, System.currentTimeMillis());
+            target.vow(text, !consents, MobClock.now());
             LOGGER.info("Mob Talk: клятва игрока принята сервером ({})", consents ? "согласие" : "отказ");
             if (!consents) return;
             try {
@@ -131,7 +132,7 @@ final class WeddingHost {
     // ---- Реплики. ----
 
     private void voice() {
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         if (line != null) { advance(now); return; }
         Wedding.Line next = ceremony.claim(now);
         if (next == null) { prefetch(ceremony.upcoming(1)); return; }

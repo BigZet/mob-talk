@@ -60,7 +60,7 @@ final class MobContextCapture {
         // contradicting price list. Its favours stay.
         Map<String, Object> trading = new LinkedHashMap<>(Trading.view(type, bridge.memory.tradeStates(mob.getUuid(), player.getUuid()),
                 bridge.memory.favor(mob.getUuid(), player.getUuid()), bridge.memory.favorsDone(mob.getUuid(), player.getUuid()),
-                card == null ? 0 : card.relationship(), System.currentTimeMillis(),
+                card == null ? 0 : card.relationship(), MobClock.now(),
                 Math.floorDiv(world.getTimeOfDay(), 24_000L), MobTrading.inventoryCounts(player), MobTrading.itemNames(type), !(mob instanceof MerchantEntity),
                 bridge.memory.neighbourFavors(mob.getUuid(), player.getUuid())));
         if (!trading.isEmpty()) {
@@ -92,10 +92,23 @@ final class MobContextCapture {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());
             mobDetails.put("level", villager.getVillagerData().getLevel());
             mobDetails.put("reputation", villager.getReputation(player));
+            io.github.mobtalk.server.CardTableService cards = CardTables.service(); // Игра в 21: кошелёк, стиль, прошлые партии.
+            if (cards != null && !villager.isBaby()) mobDetails.put("cardGame", cards.promptFacts(villager.getUuid(), player.getUuid()));
             rememberPlace(mobDetails, "jobSite", villager, MemoryModuleType.JOB_SITE);
             rememberPlace(mobDetails, "home", villager, MemoryModuleType.HOME);
             rememberPlace(mobDetails, "meetingPoint", villager, MemoryModuleType.MEETING_POINT);
             mobDetails.put("bargaining", bridge.bargaining.capture(villager, player));
+            Map<String, Object> fine = bridge.officials.fineFor(villager, player);
+            if (fine != null) mobDetails.put("officialFine", fine);
+            Map<String, Object> paper = bridge.passports.caseFor(villager, player);
+            if (paper != null) mobDetails.put("paperCase", paper);
+            List<Map<String, Object>> gossip = bridge.officials.gossipFor(villager);
+            if (gossip != null) mobDetails.put("villageOfficials", gossip);
+        }
+        if (mob instanceof BanditEntity bandit && bridge.config.banditHaggle) {
+            io.github.mobtalk.core.BanditHaggle.State robbery = bridge.bandits.haggleState(world, bandit, player);
+            if (robbery != null) mobDetails.put("robbery", Map.of("demand", robbery.demand(), "paid", robbery.paid(), "emeralds", robbery.emeralds(),
+                    "guarded", robbery.guarded(), "used", robbery.used()));
         }
         if (mob instanceof net.minecraft.entity.mob.ZombieVillagerEntity villager) {
             mobDetails.put("profession", Registries.VILLAGER_PROFESSION.getId(villager.getVillagerData().getProfession()).toString());
@@ -169,9 +182,10 @@ final class MobContextCapture {
             entities.sort(Comparator.comparingDouble(mob::squaredDistanceTo));
             for (LivingEntity entity : entities.stream().limit(16).toList()) {
                 String key = "e" + (observed.size() + 1);
+                boolean caged = entity.getCommandTags().contains(ParrotJailNews.CAGED_TAG);
                 observed.add(new ObservedEntity(key, entity.getUuid(), MobGameBridge.type(entity), entity.getName().getString(),
-                        round(mob.distanceTo(entity)), direction(mob.getPos(), entity.getPos()), true, living(entity, true)));
-                nearby.add(key + ": " + MobGameBridge.type(entity) + " " + entity.getName().getString());
+                        round(mob.distanceTo(entity)), direction(mob.getPos(), entity.getPos()), true, caged ? caged(entity, bridge) : living(entity, true)));
+                nearby.add(key + ": " + MobGameBridge.type(entity) + " " + entity.getName().getString() + (caged ? " (в клетке)" : ""));
             }
             environment.put("light", Map.of("block", world.getLightLevel(LightType.BLOCK, mob.getBlockPos()),
                     "sky", world.getLightLevel(LightType.SKY, mob.getBlockPos())));
@@ -201,6 +215,8 @@ final class MobContextCapture {
     /** A walking mob that cannot path 10 blocks away in any of four directions is shut in: a pit, a pen, a cell. */
     static boolean trapped(ServerWorld world, net.minecraft.entity.mob.PathAwareEntity mob) {
         if (mob.isAiDisabled() || !(mob.getNavigation() instanceof net.minecraft.entity.ai.pathing.MobNavigation)) return false;
+        // In bed the path finder starts from the bed and finds no way out: «выпусти меня из камеры» from a wife at home.
+        if (mob.isSleeping()) return false;
         BlockPos origin = mob.getBlockPos();
         for (int[] step : new int[][]{{10, 0}, {-10, 0}, {0, 10}, {0, -10}}) {
             BlockPos away = origin.add(step[0], 0, step[1]);
@@ -212,6 +228,18 @@ final class MobContextCapture {
             }
         }
         return true;
+    }
+
+    /** A parrot in a Parrot Cages cage; a jailed one is a stream viewer's parrot (its name is the viewer's nick) the streamer
+     * locked up for a while — the villagers may poke fun at it when {@code villageParrotJokes} is on. */
+    private static Map<String, Object> caged(LivingEntity entity, MobGameBridge bridge) {
+        Map<String, Object> result = new LinkedHashMap<>(living(entity, false));
+        result.put("inCage", true);
+        if (entity.getCommandTags().contains(ParrotJailNews.JAILED_TAG)) {
+            result.put("jailed", "stream viewer " + entity.getName().getString() + "'s parrot, jailed in the cage by the streamer");
+            if (bridge.config.villageParrotJokes) result.put("villagersMayJoke", true);
+        }
+        return Map.copyOf(result);
     }
 
     static Map<String, Object> living(LivingEntity entity, boolean equipment) {

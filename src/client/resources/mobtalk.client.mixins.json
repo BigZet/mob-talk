@@ -4,7 +4,9 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "ChatScreenAccessor",
-    "LivingEntityRendererInvoker"
+    "LivingEntityRendererInvoker",
+    "VillagerSitPoseMixin",
+    "MobNameTagMixin"
   ],
   "injectors": {
     "defaultRequire": 1

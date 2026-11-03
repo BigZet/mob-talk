@@ -1,0 +1,13 @@
+{
+  "variants": {
+    "part=base": {
+      "model": "mobtalk:block/casino/casino_column_base"
+    },
+    "part=shaft": {
+      "model": "mobtalk:block/casino/casino_column_shaft"
+    },
+    "part=capital": {
+      "model": "mobtalk:block/casino/casino_column_capital"
+    }
+  }
+}

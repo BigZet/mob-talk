@@ -155,6 +155,9 @@ public final class WeddingLedger {
                 ConversationStore.event(q, now, part + " игрока " + safe(playerName) + " и " + SocialLedger.name(p) + " у колокола; отношение к игроку " + gr.score, 4);
                 state.relations.together(q.id, SocialLedger.name(q), q.type, p.id, SocialLedger.name(p), p.type, MobRelations.Kinship.NEIGHBOR, 5, 0, now);
             }
+            List<UUID> wed = new ArrayList<>(List.of(p.id));
+            for (Wedding.Person guest : cast.everyone()) wed.add(guest.id());
+            store.villageFeel(p.villageId, wed, MobState.Event.VILLAGE_WEDDING, SocialLedger.name(p), now);
             store.scheduleSave();
         }
     }
@@ -179,6 +182,8 @@ public final class WeddingLedger {
                 ConversationStore.Profile q = state.profiles.get(guest.id().toString());
                 if (q != null) ConversationStore.event(q, now, "Был на свадьбе " + SocialLedger.name(a) + " и " + SocialLedger.name(b) + " у колокола", 3);
             }
+            if (player == null) for (ConversationStore.Profile self : List.of(a, b)) self.state.shift(MobState.Event.ROMANCE, ConversationStore.baseline(self), now);
+            store.villageFeel(a.villageId, List.of(a.id, b.id), MobState.Event.VILLAGE_WEDDING, SocialLedger.name(a) + " и " + SocialLedger.name(b), now);
             store.scheduleSave();
         }
     }

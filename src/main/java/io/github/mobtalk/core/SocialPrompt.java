@@ -65,7 +65,8 @@ final class SocialPrompt {
         Gender playerGender = Gender.ofPlayer(config.playerGender);
         if (courtship == Courtship.MARRIED) facts.add("этот игрок — " + (playerGender == null ? "твой супруг" : playerGender == Gender.MALE ? "твой муж" : "твоя жена") + ", вы в браке.");
         else if (courtship == Courtship.DATING) facts.add("вы с этим игроком встречаетесь — вы пара, но ещё не женаты.");
-        if (tree.parents(mob).contains(player)) facts.add("этот игрок — " + (playerGender == null ? "твой родитель" : playerGender == Gender.MALE ? "твой отец" : "твоя мать") + ", ты его ребёнок.");
+        if (tree.parents(mob).contains(player)) facts.add("этот игрок — " + (playerGender == null ? "твой родитель" : playerGender == Gender.MALE ? "твой отец" : "твоя мать") + ", ты его ребёнок. "
+                + "Зови его " + (playerGender == Gender.FEMALE ? "«мама»" : playerGender == Gender.MALE ? "«папа»" : "«мама» или «папа»") + ", а не по имени.");
         if (tree.children(mob).contains(player)) facts.add("этот игрок — твой ребёнок.");
         if (tree.widowed(player) && tree.links(player).containsKey(mob)) facts.add("он твой вдовец.");
         return facts;
@@ -76,7 +77,8 @@ final class SocialPrompt {
         List<String> lines = new ArrayList<>();
         for (FamilyTree.Kin kin : family) {
             String name = kin.name().isBlank() ? "без имени" : kin.name();
-            lines.add(name + " — " + (feminine(kin.word()) ? "твоя " : "твой ") + kin.word()
+            String call = "мать".equals(kin.word()) ? ", зови её «мама»" : "отец".equals(kin.word()) ? ", зови его «папа»" : "";
+            lines.add(name + " — " + (feminine(kin.word()) ? "твоя " : "твой ") + kin.word() + call
                     + (kin.dead() ? ", его уже нет в живых — ты горюешь" : present != null && present.contains(kin.id()) ? " (сейчас рядом)" : ""));
         }
         return lines;
@@ -107,8 +109,12 @@ final class SocialPrompt {
         return String.join("; ", parts);
     }
     /** Why the spouse will not have a child now, or null when it agrees. */
-    static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) {
+    static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) { return childRefusal(score, infertile, expecting, false, tooSoon); }
+    /** {@code trying}: the couple already agreed and waits for a night together; {@code expecting}: she is with child. */
+    static String childRefusal(int score, boolean infertile, boolean expecting, boolean trying, boolean tooSoon) {
         if (expecting) return "ребёнок у вас уже на подходе";
+        if (trying) return "вы уже договорились и стараетесь: скажи прямо и тепло, что согласна давно, а малыш бывает от ночи вместе в одной кровати "
+                + "(лучше особый вечер: свечи, цветы, уют) — позови спать вместе, не говори «пусть случится в своё время» и не намекай, будто ребёнок уже есть";
         if (tooSoon) return "рано: с прошлого раза прошло меньше трёх игровых дней";
         if (infertile) return "у тебя не может быть детей — это твоя боль";
         if (score < Hearts.marriage()) return "сейчас между вами не та близость";
