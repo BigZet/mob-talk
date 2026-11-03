@@ -128,6 +128,10 @@ public final class Roads {
                     pieceCache.computeIfAbsent(net.minecraft.util.math.ChunkPos.toLong(x >> 4, z >> 4),
                             k -> RoadBuilder.pieces(world, new net.minecraft.util.math.ChunkPos(k))),
                     column, point)) continue;
+            // A bridge or tunnel column the laying refused — a village piece's block stands where the deck would go, and the
+            // laying gives way without touching it — stays as it was left: the piece is not the road's obstacle (the test road
+            // crosses a village's ground on a short bridge, 2026-11-04).
+            if (point.kind() != RoadPlan.Kind.GROUND && !RoadBuilder.column(world, palette, point, column, null)) continue;
             for (int y = y0 + 1; y <= y0 + 4; y++) {
                 net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
                 // The road's own (a lamp's base and post, a railing, a tunnel's wall) is no obstacle.

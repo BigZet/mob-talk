@@ -588,7 +588,8 @@ final class RoadBuilder {
 
     /** Works one column, noting each block it digs out in {@code cleared}; with {@code cleared} null only checks that everything it
      * would change is natural (or the road's own). */
-    private static boolean column(ServerWorld world, Palette palette, RoadPlan.Point point, Column column, Set<Long> cleared) {
+    static boolean column(ServerWorld world, Palette palette, RoadPlan.Point point, Column column, Set<Long> cleared) {
+        // package-visible: Roads.obstacles runs the same dry pass to agree with the laying block for block.
         Ops ops = new Ops(world, palette, column.x(), column.z(), cleared);
         int h2 = point.h2(), y0 = h2 >> 1;
         boolean slab = (h2 & 1) == 1;
