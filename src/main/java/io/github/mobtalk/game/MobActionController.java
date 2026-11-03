@@ -42,6 +42,8 @@ final class MobActionController {
     }
     /** Under a lease or in a conversation: not to be moved by anything else (the social controller asks). */
     boolean busy(MobEntity mob) { return leases.containsKey(mob.getUuid()) || attentive(mob); }
+    /** Только аренда (просьба игрока: атака/следование/охрана), без «прислушивается к игроку». */
+    boolean leased(MobEntity mob) { return leases.containsKey(mob.getUuid()); }
     /** When each villager last called the golem, so the alarm is not raised every second. */
     private final Map<UUID, Long> alarms = new HashMap<>();
     /** When each hated player last got a memory line from a mob's stance, so fleeing every 20 s is remembered once. */
@@ -379,6 +381,7 @@ final class MobActionController {
         if (bridge.wedding.afterBrain(mob)) return; // Трек L: идёт к месту у колокола или стоит на свадьбе.
         if (bridge.confession.afterBrain(mob)) return; // Б4: батюшка идёт к аналою и стоит на исповеди.
         Lease lease = leases.get(mob.getUuid());
+        if (lease == null && bridge.bars.afterBrain(mob)) return; // Бар: бармен ходит вдоль стойки и не прыгает.
         if (lease == null && bridge.coSleep.afterBrain(mob)) return; // Трек J: идёт к кровати или спит рядом с игроком.
         if (lease == null && bridge.children.afterBrain(mob)) return; // Трек N: в схватках идёт к своей кровати.
         if (lease == null && bridge.moods.afterBrain(mob)) return; // Апатия: лежит в своей кровати днём и ночью.

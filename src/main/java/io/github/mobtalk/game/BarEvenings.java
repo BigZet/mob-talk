@@ -7,6 +7,7 @@ import net.minecraft.entity.ai.brain.BlockPosLookTarget;
 import net.minecraft.entity.ai.brain.EntityLookTarget;
 import net.minecraft.entity.ai.brain.MemoryModuleType;
 import net.minecraft.entity.ai.brain.WalkTarget;
+import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.VillagerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -47,6 +48,12 @@ final class BarEvenings {
         final Map<UUID, BlockPos> guests = new LinkedHashMap<>();
         final Map<UUID, Long> walking = new HashMap<>();
         UUID bartender; BlockPos stand; long bartenderSince; boolean music; long lastTalk; int talks;
+        /** Где бармену можно стоять: полоса за стойкой (разрешённые пути, Дмитрий 2026-11-04). */
+        List<BlockPos> line = List.of();
+        /** Куда бармен шагает вдоль стойки (null — стоит). */
+        BlockPos goal;
+        /** Был ли бармен на линии стойки хоть раз: после этого уход с линии пресекается сразу. */
+        boolean atPost;
     }
 
     private final MobGameBridge bridge;
@@ -158,6 +165,7 @@ final class BarEvenings {
             if (world.getBlockState(stand).getCollisionShape(world, stand).isEmpty()) {
                 VillagerEntity bartender = free.removeFirst();
                 evening.bartender = bartender.getUuid(); evening.stand = stand; evening.bartenderSince = world.getTime();
+                evening.line = line(world, bar);
             } else LOGGER.info("бар {}: место бармена {} занято: {}", bar.key(), stand.toShortString(),
                     world.getBlockState(stand).getBlock().getTranslationKey());
         }
@@ -242,35 +250,106 @@ final class BarEvenings {
         if (MobActionController.registered(villager, MemoryModuleType.WALK_TARGET)) villager.getBrain().forget(MemoryModuleType.WALK_TARGET);
     }
 
-    /** The bartender stands behind the counter facing his guests. */
+    /** The bartender stands behind the counter facing his guests, and from time to time steps along it. */
     private void bartender(ServerWorld world, Evening evening, List<VillagerEntity> seated, long now) {
         if (!(world.getEntity(evening.bartender) instanceof VillagerEntity bartender)) {
             LOGGER.info("бар: бармен исчез из мира");
             evening.bartender = null; return;
         }
-        if (leaves(bartender)) {
-            LOGGER.info("бар: бармен ушёл — hurt {} panic {} target {} sleep {} busy {} pos {}",
+        if (leavesBartender(bartender)) {
+            LOGGER.info("бар: бармен ушёл — hurt {} panic {} target {} sleep {} lease {} pos {}",
                     bartender.hurtTime, bartender.isPanicking(), bartender.getTarget(), bartender.isSleeping(),
-                    bridge.actions.busy(bartender), bartender.getBlockPos().toShortString());
+                    bridge.actions.leased(bartender), bartender.getBlockPos().toShortString());
             evening.bartender = null; return;
         }
-        if (bartender.getBlockPos().getSquaredDistance(evening.stand) > 1.5 && now - evening.bartenderSince > WALK_TICKS
-                && bartender.getBlockPos().getSquaredDistance(evening.stand) < GUESTS_RADIUS * GUESTS_RADIUS) {
-            // Stuck on the way, as a guest who cannot reach his seat sits down anyway: he steps behind the counter.
-            bartender.getNavigation().stop();
-            Vec3d at = Vec3d.ofBottomCenter(evening.stand);
-            bartender.refreshPositionAndAngles(at.x, at.y, at.z, bartender.getYaw(), 0);
-        }
-        if (bartender.getBlockPos().getSquaredDistance(evening.stand) > 1.5) {
-            if (MobActionController.registered(bartender, MemoryModuleType.WALK_TARGET))
-                bartender.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(evening.stand, 0.5F, 0), 40);
-            return;
-        }
+        // По стойке: раз в несколько секунд шаг к соседнему месту — ходьба видна, но от середины (своего места) не уводит.
+        if (evening.goal == null && evening.atPost && random.nextInt(12) == 0) evening.goal = stroll(bartender, evening);
+        if (evening.goal != null) return; // идёт вдоль стойки — движение держит afterBrain
         bartender.getNavigation().stop();
         if (!MobActionController.registered(bartender, MemoryModuleType.LOOK_TARGET)) return;
         VillagerEntity guest = seated.isEmpty() ? null : seated.get(random.nextInt(seated.size()));
         if (guest != null) bartender.getBrain().remember(MemoryModuleType.LOOK_TARGET, new EntityLookTarget(guest, true), 60);
         else bartender.getBrain().remember(MemoryModuleType.LOOK_TARGET, new BlockPosLookTarget(evening.stand.offset(Direction.SOUTH, 2)), 60);
+    }
+
+    /** Полоса за стойкой, где бармену можно стоять и ходить: за каждой стойкой, если пол свободен. */
+    private static List<BlockPos> line(ServerWorld world, Bar bar) {
+        List<BlockPos> spots = new ArrayList<>();
+        for (BlockPos counter : bar.counters()) {
+            BlockState state = world.getBlockState(counter);
+            Direction guests = state.contains(BarFurnitureBlock.FACING) ? state.get(BarFurnitureBlock.FACING) : Direction.SOUTH;
+            BlockPos spot = counter.offset(guests.getOpposite());
+            if (world.getBlockState(spot).getCollisionShape(world, spot).isEmpty()) spots.add(spot);
+        }
+        return spots.isEmpty() ? List.of() : List.copyOf(spots);
+    }
+
+    /** Шаг вдоль стойки: соседнее место линии в полутора блоках от середины (своего места), не то, на котором стоит. */
+    private BlockPos stroll(VillagerEntity bartender, Evening evening) {
+        List<BlockPos> near = new ArrayList<>();
+        for (BlockPos spot : evening.line)
+            if (spot.getSquaredDistance(evening.stand) <= 1.44 && spot.getSquaredDistance(bartender.getBlockPos()) > 0.5) near.add(spot);
+        return near.isEmpty() ? null : near.get(random.nextInt(near.size()));
+    }
+
+    /** Бармен не уходит из-за того, что слушает игрока (attention): только настоящая занятость — аренда — или беда. */
+    private boolean leavesBartender(VillagerEntity villager) {
+        return !villager.isAlive() || villager.isRemoved() || villager.hurtTime > 0 || villager.isPanicking() || villager.getTarget() != null || villager.isSleeping()
+                || bridge.actions.leased(villager) || bridge.wedding.involved(villager.getUuid());
+    }
+
+    /** Разрешённые пути бармена (Дмитрий, 2026-11-04): он ходит только по полосе за стойкой — на стойку не запрыгивает,
+     * из-за стойки не выпрыгивает, прыжки ему выключены. Идёт после мозга (BrainMovementMixin): ванильные прогулки
+     * (к колоколу, по деревне) сносятся, пока бармен при стойке, — они и вели его через стойку прыжком. */
+    boolean afterBrain(MobEntity mob) {
+        if (!(mob instanceof VillagerEntity villager) || !isBartender(villager)) return false;
+        Evening evening = eveningOfBartender(villager.getUuid());
+        if (evening == null || evening.stand == null) return false;
+        // Прыжки выключены в ноль: любой подброс гасится в тот же тик.
+        Vec3d speed = villager.getVelocity();
+        if (speed.y > 0.1) villager.setVelocity(speed.x, 0, speed.z);
+        List<BlockPos> line = evening.line.isEmpty() ? List.of(evening.stand) : evening.line;
+        BlockPos nearest = line.getFirst();
+        for (BlockPos spot : line) if (villager.getBlockPos().getSquaredDistance(spot) < villager.getBlockPos().getSquaredDistance(nearest)) nearest = spot;
+        double d2 = villager.getBlockPos().getSquaredDistance(nearest);
+        long since = mob.getWorld().getTime() - evening.bartenderSince;
+        boolean strayed = d2 > 4 || villager.getY() > evening.stand.getY() + 0.51;
+        if (strayed && (evening.atPost || since > WALK_TICKS)) {
+            // Сбежал с полосы (или запрыгнул на стойку): на ближайшее место линии сразу, не выжидая.
+            evening.goal = null;
+            forgetWalk(villager);
+            villager.getNavigation().stop();
+            Vec3d at = Vec3d.ofBottomCenter(nearest);
+            villager.refreshPositionAndAngles(at.x, at.y, at.z, villager.getYaw(), 0);
+            return true;
+        }
+        if (evening.goal != null) { // шаг вдоль стойки
+            if (villager.getBlockPos().getSquaredDistance(evening.goal) <= 0.49) { evening.goal = null; forgetWalk(villager); villager.getNavigation().stop(); }
+            else if (MobActionController.registered(villager, MemoryModuleType.WALK_TARGET))
+                villager.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(evening.goal, 0.5F, 0), 20);
+            else villager.getNavigation().startMovingTo(evening.goal.getX() + 0.5, evening.goal.getY(), evening.goal.getZ() + 0.5, 0.5);
+            return true;
+        }
+        if (d2 > 2.25) { // ещё не дошёл до стойки: идёт к линии, и ничто его больше не уводит
+            if (MobActionController.registered(villager, MemoryModuleType.WALK_TARGET))
+                villager.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(nearest, 0.55F, 0), 20);
+            else villager.getNavigation().startMovingTo(nearest.getX() + 0.5, nearest.getY(), nearest.getZ() + 0.5, 0.55);
+            return true;
+        }
+        evening.atPost = true;
+        forgetWalk(villager);
+        villager.getNavigation().stop();
+        return true;
+    }
+
+    private Evening eveningOfBartender(UUID id) {
+        for (Evening evening : evenings.values()) if (id.equals(evening.bartender)) return evening;
+        return null;
+    }
+
+    private static void forgetWalk(VillagerEntity villager) {
+        if (MobActionController.registered(villager, MemoryModuleType.WALK_TARGET)) villager.getBrain().forget(MemoryModuleType.WALK_TARGET);
+        if (MobActionController.registered(villager, MemoryModuleType.PATH)) villager.getBrain().forget(MemoryModuleType.PATH);
     }
 
     private static VillagerEntity nearest(VillagerEntity villager, List<VillagerEntity> others) {
