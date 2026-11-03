@@ -1,0 +1,24 @@
+{
+ "type": "minecraft:crafting_shaped",
+ "category": "misc",
+ "pattern": [
+  "S",
+  "W",
+  "L"
+ ],
+ "key": {
+  "S": {
+   "item": "minecraft:shield"
+  },
+  "W": {
+   "item": "minecraft:iron_sword"
+  },
+  "L": {
+   "tag": "minecraft:logs"
+  }
+ },
+ "result": {
+  "id": "mobtalk:guard_post",
+  "count": 1
+ }
+}

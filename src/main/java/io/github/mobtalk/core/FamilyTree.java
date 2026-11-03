@@ -45,6 +45,8 @@ public final class FamilyTree {
         return other == null || other.dead ? null : UUID.fromString(node.spouse);
     }
     public boolean married(UUID id) { return spouse(id) != null; }
+    /** A new given name for someone in the tree (a child its parents named). */
+    void rename(UUID id, String name) { Node node = get(id); if (node != null) node.name = name == null ? "" : name; }
     public boolean widowed(UUID id) { Node node = get(id); return node != null && node.widowed; }
     public boolean dead(UUID id) { Node node = get(id); return node != null && node.dead; }
 

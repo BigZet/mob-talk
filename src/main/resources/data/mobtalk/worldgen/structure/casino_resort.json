@@ -1,0 +1,8 @@
+{
+  "type": "mobtalk:resort",
+  "biomes": "#mobtalk:has_structure/casino_resort",
+  "step": "surface_structures",
+  "spawn_overrides": {},
+  "terrain_adaptation": "beard_box",
+  "start_pool": "mobtalk:casino/resort"
+}

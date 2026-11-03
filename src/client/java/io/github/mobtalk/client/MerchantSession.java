@@ -106,7 +106,7 @@ final class MerchantSession {
         String mobText = data.has("mob") ? data.get("mob").getAsString() : "";
         if (mobText.isEmpty()) {
             if (context != null) end("Торговец недоступен: разговор отменён");
-            else owner.status = "Нет доступного торговца для Mob Talk";
+            else if (!barMenu(opened)) owner.status = "Нет доступного торговца для Mob Talk";
             return;
         }
         UUID id;
@@ -118,6 +118,11 @@ final class MerchantSession {
         owner.select(mob);
         context = new Context(id, player, syncId, epoch);
         owner.status = owner.readyStatus();
+    }
+
+    /** The bartender's drinks menu (BarMerchant) is a plain shop window, not a conversation: nothing to report about it. */
+    private static boolean barMenu(MerchantScreen opened) {
+        return opened.getTitle().getContent() instanceof net.minecraft.text.TranslatableTextContent title && title.getKey().equals("mobtalk.bar.menu");
     }
 
     void end(String reason) {

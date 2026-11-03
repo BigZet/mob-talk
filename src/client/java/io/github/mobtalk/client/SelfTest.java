@@ -54,6 +54,23 @@ final class SelfTest {
     static final boolean ONLY_NAMES = "names".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=looks}: track M, villagers as people (no LLM, no voice): checks and screenshots. */
     static final boolean ONLY_LOOKS = "looks".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=defense}: village defence, stage 1 — the alarm, no spawning in the village, the golem (no LLM, no voice). */
+    static final boolean ONLY_DEFENSE = "defense".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=mood}: villagers' moods — the storm and a monster as reasons, grief, dread and love on the nameplates, the info screen (no LLM, no voice). */
+    static final boolean ONLY_MOOD = "mood".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=towers}: village defence, stage 2 — watchtowers built, their archers, horn and arrows (no LLM, no voice). */
+    static final boolean ONLY_TOWERS = "towers".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=guards}: village defence, stage 3 — guard stands, guards, their day, night round and fight (no LLM, no voice). */
+    static final boolean ONLY_GUARDS = "guards".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=roads}: a road between two spots laid, its carts, wagon and horseman, the lamps (no LLM, no voice). */
+    static final boolean ONLY_ROADS = "roads".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=officials}: officials — desks, ranks, looks, bribes, witnesses, the inspector's order (no LLM, no voice). */
+    static final boolean ONLY_OFFICIALS = "officials".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=bar}: the village bar, its evening and villages with bars (no LLM, no voice). */
+    static final boolean ONLY_BAR = "bar".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Only casino}: the village casino, its furniture, bouncers and visitors (SelfTestCasino). */
+    static final boolean ONLY_CASINO = "casino".equals(System.getProperty("mobtalk.selftest.only"));
+    static final boolean ONLY_MFC = "mfc".equals(System.getProperty("mobtalk.selftest.only"));
     /** {@code -Dmobtalk.selftest.only=voices}: new villagers get an age and a pool voice of their sex and age with no early repeats,
      * and one villager of each age is voiced through OpenRouter (no LLM). */
     static final boolean ONLY_VOICES = "voices".equals(System.getProperty("mobtalk.selftest.only"));
@@ -69,6 +86,10 @@ final class SelfTest {
     }
     /** {@code -Dmobtalk.selftest.only=voicefix}: the voice from the mob — falloff, grace out of sight, one voice after death (synthetic PCM, no LLM, no TTS). */
     static final boolean ONLY_VOICEFIX = "voicefix".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=cards}: игра в 21 с жителем (docs/cards-21.md), без ИИ и голоса. */
+    static final boolean ONLY_CARDS = "cards".equals(System.getProperty("mobtalk.selftest.only"));
+    /** {@code -Dmobtalk.selftest.only=cardsprep}: подготовить мир для ручной игры в 21 — к жителю в деревне, изумруды и колоды, проверка стола. */
+    static final boolean ONLY_CARDSPREP = "cardsprep".equals(System.getProperty("mobtalk.selftest.only"));
     final MobTalkClient owner;
     private final String world;
     private int stage, ticks, stageStart;
@@ -109,7 +130,8 @@ final class SelfTest {
                 stage = 1; log("loading world " + world);
                 client.createIntegratedServerLoader().start(world, () -> fail("world load cancelled"));
                 await("world joined", 120, () -> client.player != null && client.world != null && client.getServer() != null
-                        && MobGameBridge.active(client.getServer()) != null && owner.enabled() && client.player.age > 60, this::prepareScene);
+                        && MobGameBridge.active(client.getServer()) != null && owner.enabled() && client.player.age > 60,
+                        ONLY_CARDSPREP ? () -> new SelfTestCards(this, 0, 0, 0).prep(this::finish) : this::prepareScene);
             }
             return;
         }
@@ -162,11 +184,21 @@ final class SelfTest {
             villager = nearest(VillagerEntity.class); cow = nearest(CowEntity.class);
             return villager != null && cow != null && MobSpeechSound.find(owner.world, villager) != null && MobSpeechSound.find(owner.world, cow) != null;
         }, ONLY_VOICEFIX ? () -> new SelfTestVoiceFix(this, villager, cow, sx, SY, sz).run(this::finish)
+                : ONLY_CARDS ? () -> new SelfTestCards(this, sx, SY, sz).run(this::finish)
                 : ONLY_PLACE ? () -> new SelfTestPlace(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_CTOV ? () -> new SelfTestCtov(this, cow, sx, SY, sz).run(this::finish)
                 : ONLY_PACK ? () -> new SelfTestPack(this, sx, SY, sz).run(this::finish)
                 : ONLY_WEDDING ? () -> new SelfTestWedding(this, sx, SY, sz).run(this::finish)
                 : ONLY_FAMILY ? () -> new SelfTestFamily(this, sx, SY, sz).run(this::finish)
+                : ONLY_DEFENSE ? () -> new SelfTestDefense(this, sx, SY, sz).run(this::finish)
+                : ONLY_MOOD ? () -> new SelfTestMood(this, sx, SY, sz).run(this::finish)
+                : ONLY_TOWERS ? () -> new SelfTestTowers(this, sx, SY, sz).run(this::finish)
+                : ONLY_GUARDS ? () -> new SelfTestGuards(this, sx, SY, sz).run(this::finish)
+                : ONLY_ROADS ? () -> new SelfTestRoads(this, sx, SY, sz).run(this::finish)
+                : ONLY_BAR ? () -> new SelfTestBar(this, sx, SY, sz).run(this::finish)
+                : ONLY_MFC ? () -> new SelfTestMfc(this, sx, SY, sz).run(this::finish)
+                : ONLY_OFFICIALS ? () -> new SelfTestOfficials(this, sx, SY, sz).run(this::finish)
+                : ONLY_CASINO ? () -> new SelfTestCasino(this, sx, SY, sz).run(this::finish)
                 : ONLY_LOOKS ? () -> new SelfTestLooks(this, sx, SY, sz).run(this::finish) : ONLY_NAMES ? this::names : ONLY_VOICES ? this::voices : this::aim);
     }
 

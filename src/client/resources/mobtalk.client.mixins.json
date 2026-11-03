@@ -5,6 +5,7 @@
   "client": [
     "ChatScreenAccessor",
     "LivingEntityRendererInvoker",
+    "VillagerSitPoseMixin",
     "MobNameTagMixin"
   ],
   "injectors": {

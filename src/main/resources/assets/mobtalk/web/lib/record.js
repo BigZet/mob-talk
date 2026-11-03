@@ -12,6 +12,7 @@ export const KINDS = {
   trade: { title: 'Торг', icon: 'costs', k: 3 },
   relation_change: { title: 'Отношения', icon: 'heart', k: 5 },
   rumor: { title: 'Слух', icon: 'info', k: 7 },
+  cards: { title: 'Игра в 21', icon: 'costs', k: 4 },
   verdict: { title: 'Вердикт бога', icon: 'divine', k: 7 },
   confession: { title: 'Исповедь', icon: 'divine', k: 5 },
   ban: { title: 'Бан', icon: 'warn', k: 8 },

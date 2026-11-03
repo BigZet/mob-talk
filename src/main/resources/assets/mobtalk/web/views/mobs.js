@@ -7,7 +7,10 @@ import { tabs, load, drawer, confirm, busy, toast, toastError, empty, hearts, kv
 import { speciesTitle, pname } from '../lib/record.js';
 import { navigate, setParams } from '../app.js';
 
-const STATE = [['calm', 'Спокойствие', 3], ['trust', 'Доверие', 1], ['interest', 'Интерес', 7], ['mood', 'Настроение', 4]];
+const STATE = [['mood', 'Настроение', 4], ['calm', 'Спокойствие', 3], ['energy', 'Бодрость', 2], ['trust', 'Доверие', 1], ['interest', 'Интерес', 7]];
+const VILLAGE_MOOD = [['mood', 'Настроение', 4], ['calm', 'Спокойствие', 3], ['energy', 'Бодрость', 2]];
+const signClass = s => (s > 0 ? '.good' : s < 0 ? '.bad' : '');
+const CARD_STYLES = { CAUTIOUS: 'осторожный', CALCULATING: 'расчётливый', RECKLESS: 'азартный', TRICKSTER: 'хитрец' };
 
 export default function mobs(root, route) {
   let tab = route.params.tab || 'mobs';
@@ -61,8 +64,8 @@ function drawMobs(body, route) {
   page(true);
 }
 
-function stateBars(s) {
-  return h('div.stack', { style: { gap: '10px' } }, STATE.map(([k, title, slot]) => h('div',
+function stateBars(s, rows = STATE) {
+  return h('div.stack', { style: { gap: '10px' } }, rows.filter(([k]) => s?.[k] !== undefined).map(([k, title, slot]) => h('div',
     h('div.row', { style: { fontSize: '13px', marginBottom: '4px' } }, h('span.grow.text-2', title), h('b.num', s?.[k] ?? '—')),
     h('div.meter', { role: 'meter', 'aria-label': title, 'aria-valuenow': s?.[k] ?? 0, 'aria-valuemin': 0, 'aria-valuemax': 100 }, h('i', { style: { width: `${s?.[k] ?? 0}%`, background: `var(--s${slot})` } })))));
 }
@@ -106,15 +109,40 @@ export function mobCard(uuid, onClose) {
         busy(clearH, async () => { await api.post(`mobs/${encodeURIComponent(uuid)}/clear-history`); toast('История очищена'); reload(); });
     });
     const fam = r.family || {};
+    const rivals = r.rivals;
+    const rivalAction = (label, action, done, danger) => {
+      const b = h(danger ? 'button.btn.sm.danger' : 'button.btn.sm', { type: 'button' }, label);
+      b.addEventListener('click', () => busy(b, async () => { await api.post(`mobs/${encodeURIComponent(uuid)}/${action}`); toast(done); reload(); }));
+      return b;
+    };
     return [
       h('div.row.nowrap', avatar(c.name || m.name, 'lg'), h('div.grow', h('h2', c.name || m.name), h('div.muted', speciesTitle(m.species), m.village?.name ? ` · ${m.village.name}` : '', m.trait ? ` · ${m.trait}` : ''),
         h('div.row', { style: { gap: '4px', marginTop: '4px' } }, m.alive === false && h('span.badge.bad', 'погиб'), m.loaded ? h('span.badge.good', 'загружен') : h('span.badge', 'выгружен')))),
-      h('section.card', h('div.card-head', h('h3', 'Состояние'), r.state?.word && h('span.badge.accent', r.state.word)), stateBars(r.state)),
+      h('section.card', h('div.card-head', h('h3', 'Состояние'), r.state?.spell ? h(`span.badge${signClass(r.state.spell.sign)}`, `${r.state.spell.word} · ${fmt.num(r.state.spell.minutes)} мин`) : r.state?.word && h('span.badge.accent', r.state.word)),
+        stateBars(r.state),
+        r.state?.spell?.help && h('p.muted', { style: { marginTop: '10px' } }, `Поможет: ${r.state.spell.help}`),
+        r.state?.reasons?.length ? h('div.meta', { style: { marginTop: '10px', flexWrap: 'wrap' } }, r.state.reasons.map(x => h(`span.badge${signClass(x.sign)}`, x.text))) : null),
       (fam.spouse || fam.children?.length) && h('section', h('h3', { style: { marginBottom: '8px' } }, 'Семья'), kv([fam.spouse && ['Супруг(а)', pname(fam.spouse)], fam.children?.length && ['Дети', fam.children.map(pname).join(', ')]])),
+      r.cards && h('section.stack', h('h3', 'Игра в 21'),
+        kv([['Кошелёк', `${r.cards.purse} изумр.`], ['Манера', CARD_STYLES[r.cards.style] || r.cards.style]]),
+        r.cards.games?.length ? h('div.list.card.flush', r.cards.games.map(g => h('div.list-item', h('div.body',
+          h('div.line', `${pname(g.player)}: ${g.rounds} раздач, ${g.net > 0 ? 'игрок +' + g.net : g.net < 0 ? 'житель +' + -g.net : 'вничью'}`),
+          h('div.meta', fmt.ago(g.t), h('span', g.variant === 'BLACKJACK' ? 'блэкджек' : 'очко'), g.note && h('span', g.note))))))
+          : h('p.muted', 'Ещё не играл.')),
       h('section.stack', h('h3', 'Отношения с игроками'),
         r.relations?.length ? h('div.list.card.flush', r.relations.map(x => h('a.list-item', { href: `#/players/${encodeURIComponent(x.player?.uuid || '')}`, onclick: () => d.close() }, avatar(pname(x.player)),
           h('div.body', h('div', { style: { fontWeight: 600 } }, pname(x.player)), h('div.meta', x.label && h('span.badge', x.label), h('span.num', `отношение ${x.relationship}`))), hearts(x.hearts ?? 0))))
           : h('p.muted', 'Ни с кем не знаком.')),
+      rivals && h('section.stack', h('h3', 'Соперники'),
+        rivals.suitors?.length ? h('div.list.card.flush', rivals.suitors.map(x => h('div.list-item', avatar(pname(x.player)),
+          h('div.body', h('div', { style: { fontWeight: 600 } }, pname(x.player)), h('div.meta', h('span.badge', x.courtship), h('span.num', `сердечки ${x.hearts} · счёт выбора ${x.score}`))))))
+          : h('p.muted', 'Сейчас никто не ухаживает.'),
+        rivals.trial && kv([['Испытание', `${rivals.trial.kind === 'FAVORITE' ? 'первым подарить' : 'первым принести'} ${rivals.trial.item}${rivals.trial.count > 1 ? ' ×' + rivals.trial.count : ''}`],
+          ['Принесли', rivals.trial.entries.map(e => `${pname(e.player)}: ${e.progress}`).join(', ') || '—'], ['Конец', fmt.ago(rivals.trial.endsAt)]]),
+        rivals.sceneAt && kv([['Выбор у колокола', fmt.ago(rivals.sceneAt)]]),
+        h('div.row', rivals.trial && rivalAction('Закончить испытание', 'rivals-end-trial', 'Испытание закончено'),
+          !rivals.sceneAt && rivals.suitors?.length >= 2 && rivalAction('Позвать к колоколу', 'rivals-call', 'Ухажёры позваны'),
+          rivalAction('Сбросить соперничество', 'rivals-reset', 'Сброшено', true))),
       h('section.stack', h('h3', 'Факты'), r.facts?.length ? h('div.list.card.flush', r.facts.map(f => h('div.list-item', h('div.body', h('div.line', f.text), h('div.meta', fmt.ago(f.t), f.importance != null && h('span', `важность ${f.importance}`)))))) : h('p.muted', 'Фактов нет.')),
       h('section.stack', h('div.row', h('h3.grow', 'События'), h('a.btn.sm.ghost', { href: `#/history?mob=${encodeURIComponent(uuid)}`, onclick: () => d.close() }, 'Вся история моба', icon('chevron', 'sm'))),
         r.events?.length ? h('div.list.card.flush', r.events.map(ev => h('div.list-item', h('div.body.line', ev.text), h('time.time', fmt.ago(ev.t))))) : h('p.muted', 'Событий нет.')),
@@ -126,12 +154,32 @@ export function mobCard(uuid, onClose) {
   return d;
 }
 
+// Настроение деревни: средние по жителям, сколько приуныли и сколько сияют, долгие состояния и общие причины.
+function villageMood(m) {
+  if (!m?.counted) return null;
+  return h('div.grid.three', { style: { marginBottom: '16px' } },
+    h('div.stack', h('h3', 'Настроение деревни'), stateBars(m, VILLAGE_MOOD)),
+    h('div.stack', h('h3', 'Жители'),
+      h('div.meta', { style: { flexWrap: 'wrap', gap: '6px', alignItems: 'center' } },
+        h('span', `учтено ${fmt.num(m.counted)}`),
+        h(`span.badge${m.low ? '.bad' : ''}`, `приуныли: ${fmt.num(m.low)}`),
+        h(`span.badge${m.bright ? '.good' : ''}`, `сияют: ${fmt.num(m.bright)}`)),
+      m.larder && h('div.meta', { style: { flexWrap: 'wrap', gap: '6px', alignItems: 'center' } },
+        h(`span.badge${m.larder.meals < m.larder.residents ? '.bad' : '.good'}`, `еды: ${fmt.num(m.larder.meals)} на ${fmt.num(m.larder.residents)} ${fmt.plural(m.larder.residents, 'жителя', 'жителей', 'жителей')}`),
+        h(`span.badge${m.larder.hungry ? '.bad' : ''}`, `голодных: ${fmt.num(m.larder.hungry)}`)),
+      m.spells?.length ? h('div.meta', { style: { flexWrap: 'wrap', gap: '6px' } }, m.spells.map(x => h(`span.badge${signClass(x.sign)}`, `${x.word}: ${fmt.num(x.count)}`))) : h('p.muted', 'Долгих состояний нет.')),
+    h('div.stack', h('h3', 'Почему'),
+      m.reasons?.length ? h('div.list', m.reasons.map(x => h('div.list-item', { style: { padding: '6px 0' } },
+        h('div.body.line', h(`span.badge${signClass(x.sign)}`, x.text)), h('span.num', `${fmt.num(x.count)} ${fmt.plural(x.count, 'житель', 'жителя', 'жителей')}`)))) : h('p.muted', 'Ничего особенного.')));
+}
+
 function drawVillages(body) {
   load(body, () => api.get('villages'), r => {
     const vs = r.villages || [];
     if (!vs.length) return empty('Деревень с жителями Mob Talk пока нет.');
     return h('div.stack.lg', vs.map(v => h('section.card',
       h('div.card-head', h('h2', v.name), h('span.sub', `${fmt.num(v.residents)} ${fmt.plural(v.residents, 'житель', 'жителя', 'жителей')}`), h('a.btn.sm.ghost', { href: `#/mobs?village=${encodeURIComponent(v.id)}` }, 'Жители', icon('chevron', 'sm'))),
+      villageMood(v.mood),
       h('div.grid.three',
         h('div.stack', h('h3', 'Очки игроков'), v.standings?.length ? h('div.list', v.standings.map(s => {
           const btn = s.points < 0 ? h('button.btn.sm', { type: 'button' }, 'Простить') : null;

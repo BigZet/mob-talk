@@ -58,6 +58,7 @@ public final class BargainMeter {
         score += (state.mood() - 50) * 0.2;
         score += Math.max(-100, Math.min(100, relationship)) * 0.25;
         if (state.generous()) score += 10;
+        if (state.grudging()) score -= 15;
         int rounded = (int) Math.round(Math.max(-100, Math.min(100, score)));
         return new Reading(Verdict.of(rounded), rounded);
     }

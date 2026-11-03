@@ -1,5 +1,6 @@
 package io.github.mobtalk.server;
 
+import io.github.mobtalk.core.MobClock;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -10,6 +11,7 @@ import io.github.mobtalk.core.FamilyTree;
 import io.github.mobtalk.core.MobCard;
 import io.github.mobtalk.core.MobState;
 import io.github.mobtalk.core.VillageRumors;
+import io.github.mobtalk.core.RivalryLedger;
 import io.github.mobtalk.game.MobGameBridge;
 import io.github.mobtalk.server.web.ApiException;
 import io.github.mobtalk.server.web.GameView;
@@ -54,7 +56,7 @@ final class LiveGameView implements GameView {
     private final MobGameBridge bridge;
     private final Supplier<DialogueService> dialogue;
     private final Path runDir;
-    private final long startedMillis = System.currentTimeMillis();
+    private final long startedMillis = MobClock.now();
     /** Когда игрок вошёл (для {@code onlineSeconds}) и когда вышел (для {@code lastSeen}). */
     private final Map<UUID, Long> joined = new ConcurrentHashMap<>(), left = new ConcurrentHashMap<>();
     /** Последняя известная точка вышедшего игрока: мир и координаты, только для «Местоположения». */
@@ -70,14 +72,14 @@ final class LiveGameView implements GameView {
 
     /** Игрок погиб: точка для карты; строку в историю (без координат) пишет {@link AdminLink}. */
     void died(ServerPlayerEntity player, String cause) {
-        deaths.add(System.currentTimeMillis(), player.getUuid(), player.getGameProfile().getName(), player.getWorld().getRegistryKey().getValue().toString(),
+        deaths.add(MobClock.now(), player.getUuid(), player.getGameProfile().getName(), player.getWorld().getRegistryKey().getValue().toString(),
                 player.getBlockX(), player.getBlockY(), player.getBlockZ(), cause);
     }
 
-    void joined(ServerPlayerEntity player) { joined.put(player.getUuid(), System.currentTimeMillis()); left.remove(player.getUuid()); }
+    void joined(ServerPlayerEntity player) { joined.put(player.getUuid(), MobClock.now()); left.remove(player.getUuid()); }
     void left(ServerPlayerEntity player) {
         joined.remove(player.getUuid());
-        left.put(player.getUuid(), System.currentTimeMillis());
+        left.put(player.getUuid(), MobClock.now());
         lastPlace.put(player.getUuid(), place(player, false));
     }
 
@@ -104,7 +106,7 @@ final class LiveGameView implements GameView {
             int talking = 0;
             if (service != null) for (ServerPlayerEntity player : players_().getPlayerList()) if (service.busyTalking(player.getUuid())) talking++;
             return Json.obj("online", players_().getCurrentPlayerCount(), "maxPlayers", players_().getMaxPlayerCount(),
-                    "uptimeSeconds", (System.currentTimeMillis() - startedMillis) / 1000, "streamer", streamerJson(),
+                    "uptimeSeconds", (MobClock.now() - startedMillis) / 1000, "streamer", streamerJson(),
                     "dialoguesActive", talking, "llmQueue", 0, "llmInFlight", talking);
         });
     }
@@ -128,7 +130,7 @@ final class LiveGameView implements GameView {
             try { if (Files.exists(manifest)) pack.addAll(Files.readAllLines(manifest)); } catch (java.io.IOException ignored) { }
             return Json.obj("version", MobTalkMod.version(), "minecraft", server.getVersion(),
                     "loader", FabricLoader.getInstance().getModContainer("fabricloader").map(m -> m.getMetadata().getVersion().getFriendlyString()).orElse(""),
-                    "mods", mods, "uptimeSeconds", (System.currentTimeMillis() - startedMillis) / 1000,
+                    "mods", mods, "uptimeSeconds", (MobClock.now() - startedMillis) / 1000,
                     "world", Json.obj("name", server.getSaveProperties().getLevelName(), "dir", worldDir(), "difficulty", server.getSaveProperties().getDifficulty().getName(),
                             "dayTime", overworld == null ? 0 : overworld.getTimeOfDay() % 24000),
                     "players", Json.obj("online", players_().getCurrentPlayerCount(), "max", players_().getMaxPlayerCount()), "pack", pack);
@@ -230,8 +232,8 @@ final class LiveGameView implements GameView {
         return Json.obj("uuid", id.toString(), "name", name, "online", online != null, "level", level.name(),
                 "streamer", id.equals(ServerConfig.streamer()), "op", op, "whitelisted", players_().getWhitelist().isAllowed(profile),
                 "banned", ban != null, "banReason", ban == null ? null : ban.getReason(),
-                "onlineSeconds", online == null || since == null ? 0 : (System.currentTimeMillis() - since) / 1000,
-                "lastSeen", online != null ? System.currentTimeMillis() : left.getOrDefault(id, 0L), "stt", stt(id));
+                "onlineSeconds", online == null || since == null ? 0 : (MobClock.now() - since) / 1000,
+                "lastSeen", online != null ? MobClock.now() : left.getOrDefault(id, 0L), "stt", stt(id));
     }
 
     /** Распознавание речи игрока: выбор в F7 ({@code chosen}), стоит ли свой Whisper ({@code installed}, null — клиент не сообщил),
@@ -348,7 +350,7 @@ final class LiveGameView implements GameView {
         return onServer(() -> {
             List<JsonObject> list = new ArrayList<>();
             for (ServerPlayerEntity player : players_().getPlayerList()) list.add(place(player, true));
-            return Json.obj("t", System.currentTimeMillis(), "players", list);
+            return Json.obj("t", MobClock.now(), "players", list);
         });
     }
 
@@ -358,7 +360,7 @@ final class LiveGameView implements GameView {
             JsonObject out;
             if (online != null) {
                 out = place(online, true);
-                out.addProperty("t", System.currentTimeMillis());
+                out.addProperty("t", MobClock.now());
                 BlockPos spawn = online.getSpawnPointPosition();
                 out.add("respawn", spawn == null ? null : Json.obj("world", online.getSpawnPointDimension().getValue().toString(), "x", spawn.getX(), "y", spawn.getY(), "z", spawn.getZ()));
                 return out;
@@ -478,12 +480,48 @@ final class LiveGameView implements GameView {
             for (UUID child : memory().childrenOf(id)) children.add(kinJson(child));
             String character = card.customPersonality() == null || card.customPersonality().isBlank() ? card.personality() : card.customPersonality();
             String backstory = memory().backstoryOf(id);
-            return Json.obj("mob", mobJson(id),
+            return Json.obj("mob", mobJson(id), "rivals", rivalsJson(id),
                     "card", Json.obj("name", card.name(), "character", (character == null ? "" : character) + (backstory.isBlank() ? "" : "\n" + backstory), "voice", card.voiceId(), "memory", card.memory()),
-                    "state", Json.obj("calm", state.calm(), "trust", state.trust(), "interest", state.interest(), "mood", state.mood(), "word", state.thought()),
+                    "state", Json.obj("calm", state.calm(), "trust", state.trust(), "interest", state.interest(), "mood", state.mood(), "energy", state.energy(), "word", state.thought(),
+                            "spell", state.spell() == null ? null : Json.obj("word", state.spell().word(state.female()), "sign", state.spell().sign, "minutes", state.spellMillis() / 60_000L, "help", state.spell().help),
+                            "reasons", state.reasons().stream().map(r -> Json.obj("text", r.text(), "sign", r.sign())).toList()),
                     "relations", relations, "facts", facts, "events", events,
-                    "family", Json.obj("spouse", spouse == null ? null : kinJson(spouse), "children", children));
+                    "family", Json.obj("spouse", spouse == null ? null : kinJson(spouse), "children", children),
+                    "cards", "minecraft:villager".equals(card.type()) ? cardsJson(id) : null);
         });
+    }
+    /** П3: ухажёры жителя, идущее испытание и назначенный выбор у колокола; null — соперничества нет. */
+    private JsonObject rivalsJson(UUID id) {
+        long now = MobClock.now();
+        List<JsonObject> suitors = new ArrayList<>();
+        for (RivalryLedger.Suitor s : memory().rivalry().suitors(id, now))
+            suitors.add(Json.obj("player", Json.player(s.player(), s.name()), "hearts", s.hearts(), "score", s.score(), "courtship", switch (s.courtship()) {
+                case DATING -> "встречаются"; case ENGAGED -> "помолвлены"; case MARRIED -> "в браке"; default -> "ухаживает";
+            }));
+        JsonObject trial = null;
+        for (RivalryLedger.TrialView t : memory().rivalry().trials(now)) {
+            if (!t.villager().equals(id)) continue;
+            List<JsonObject> entries = new ArrayList<>();
+            for (RivalryLedger.Entry e : t.entries()) entries.add(Json.obj("player", Json.player(e.player(), e.name()), "progress", e.progress()));
+            trial = Json.obj("kind", t.kind(), "item", t.item(), "count", t.count(), "endsAt", t.endsAt(), "entries", entries);
+        }
+        Long scene = null;
+        for (RivalryLedger.Scene s : memory().rivalry().scenes(now)) if (s.villager().equals(id)) scene = s.at();
+        if (suitors.isEmpty() && trial == null && scene == null) return null;
+        return Json.obj("suitors", suitors, "trial", trial, "sceneAt", scene);
+    }
+
+    /** Игра в 21: кошелёк и манера жителя, последние партии с ним. */
+    private JsonObject cardsJson(UUID id) {
+        io.github.mobtalk.core.CardLedger cards = memory().cards();
+        List<JsonObject> games = new ArrayList<>();
+        for (io.github.mobtalk.core.CardLedger.Session s : cards.history(200)) {
+            if (!id.toString().equals(s.villager())) continue;
+            games.add(Json.obj("t", s.time(), "player", Json.player(UUID.fromString(s.player()), s.playerName()), "variant", s.variant(),
+                    "rounds", s.rounds(), "net", s.net(), "note", s.note()));
+            if (games.size() >= 20) break;
+        }
+        return Json.obj("purse", Math.max(0, cards.balance(id)), "style", cards.style(id).name(), "games", games);
     }
     private JsonObject kinJson(UUID id) {
         if (memory().known(id)) return mobJson(id);
@@ -503,6 +541,12 @@ final class LiveGameView implements GameView {
                 }
                 case "reset" -> { memory().resetMob(id); return Json.ok("Состояние и память сброшены"); }
                 case "clear-history" -> { memory().clearHistory(id); return Json.ok("История реплик очищена"); }
+                case "rivals-reset" -> { return Json.ok(memory().rivalry().reset(id) ? "Соперничество сброшено" : "Соперничества не было"); }
+                case "rivals-end-trial" -> { return Json.ok(memory().rivalry().endTrial(id, MobClock.now()) ? "Испытание закончено" : "Испытания нет"); }
+                case "rivals-call" -> {
+                    if (!memory().rivalry().callScene(id, MobClock.now())) throw ApiException.badRequest("Нужны двое ухажёров, и выбор не должен быть уже назначен.");
+                    return Json.ok("Ухажёры позваны к колоколу");
+                }
                 default -> throw ApiException.badRequest("Неизвестное действие: " + action);
             }
         });
@@ -510,7 +554,7 @@ final class LiveGameView implements GameView {
 
     @Override public JsonObject villages() {
         return onServer(() -> {
-            long now = System.currentTimeMillis();
+            long now = MobClock.now();
             List<JsonObject> out = new ArrayList<>();
             Map<UUID, String> players = knownPlayers();
             for (ConversationStore.Village village : memory().villages()) {
@@ -528,10 +572,24 @@ final class LiveGameView implements GameView {
                     standings.add(Json.obj("player", Json.player(id, name), "points", (int) Math.round(fame.balance()), "rank", fame.describe()));
                 });
                 out.add(Json.obj("id", village.id(), "name", village.name(), "residents", memory().residents(village.id()),
-                        "chronicle", chronicle, "rumors", rumors, "standings", standings));
+                        "chronicle", chronicle, "rumors", rumors, "standings", standings, "mood", moodJson(memory().villageMood(village.id(), now), memory().larder(village.id()))));
             }
             return Json.obj("villages", out);
         });
+    }
+
+    /** The village mood for the Villages tab: averages, the low and the bright, long moods with their words, shared reasons. */
+    static JsonObject moodJson(ConversationStore.VillageMood mood, ConversationStore.Larder larder) {
+        List<JsonObject> spells = new ArrayList<>();
+        mood.spells().forEach((key, count) -> {
+            io.github.mobtalk.core.MoodSpell spell = io.github.mobtalk.core.MoodSpell.byKey(key);
+            spells.add(Json.obj("key", key, "word", spell == null ? key : spell.word(false), "sign", spell == null ? 0 : spell.sign, "count", count));
+        });
+        List<JsonObject> reasons = new ArrayList<>();
+        for (ConversationStore.SharedReason r : mood.reasons()) reasons.add(Json.obj("text", r.text(), "sign", r.sign(), "count", r.count()));
+        return Json.obj("counted", mood.counted(), "mood", mood.mood(), "calm", mood.calm(), "energy", mood.energy(), "low", mood.low(),
+                "bright", mood.bright(), "spells", spells, "reasons", reasons,
+                "larder", larder == null ? null : Json.obj("meals", larder.meals(), "residents", larder.residents(), "hungry", larder.hungry(), "t", larder.at()));
     }
 
     @Override public JsonObject forgive(String villageId, UUID player) {

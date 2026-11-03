@@ -49,7 +49,7 @@ final class FamilyController {
             int count = random.nextDouble() < ChildGrowth.TWINS ? 2 : 1;
             for (int i = 0; i < count; i++) {
                 VillagerEntity baby = spawnBaby(world, parent);
-                if (baby != null) bridge.memory.social().born(baby.getUuid(), parent.getUuid(), expecting.partner(), playerName, world.getTime(), System.currentTimeMillis());
+                if (baby != null) bridge.memory.social().born(baby.getUuid(), parent.getUuid(), expecting.partner(), playerName, world.getTime(), MobClock.now());
             }
             if (player != null) player.sendMessage(Text.translatable("mobtalk.family.birth", name(parent), playerName), false);
         }
@@ -64,7 +64,7 @@ final class FamilyController {
             if (random.nextInt(100) >= bridge.config.birthChance || random.nextDouble() >= ChildGrowth.birthChance(household.children())) continue;
             VillagerEntity baby = spawnBaby(world, mother);
             if (baby == null) continue;
-            bridge.memory.social().born(baby.getUuid(), mother.getUuid(), father.getUuid(), "", world.getTime(), System.currentTimeMillis());
+            bridge.memory.social().born(baby.getUuid(), mother.getUuid(), father.getUuid(), "", world.getTime(), MobClock.now());
             player.sendMessage(Text.translatable("mobtalk.family.birth", name(mother), name(father)), false);
             return; // One birth per village and minute is plenty.
         }
@@ -111,10 +111,10 @@ final class FamilyController {
         List<SocialLedger.Resident> residents = villagers.stream().map(v -> new SocialLedger.Resident(v.getUuid(), name(v), !v.isBaby())).toList();
         // Трек L: иногда, пока игрок рядом, свадьба жителей идёт сценой у колокола — с ведущим, клятвами и пожеланиями.
         if (bridge.config.weddingCeremony && !bridge.wedding.active() && random.nextInt(100) < bridge.config.weddingScenePercent) {
-            UUID[] chosen = bridge.memory.social().villageWedding(residents, player.getUuid(), System.currentTimeMillis(), false);
+            UUID[] chosen = bridge.memory.social().villageWedding(residents, player.getUuid(), MobClock.now(), false);
             if (chosen != null && bridge.wedding.startVillage(world, chosen[0], chosen[1], player)) return;
         }
-        UUID[] pair = bridge.memory.social().villageWedding(residents, player.getUuid(), System.currentTimeMillis());
+        UUID[] pair = bridge.memory.social().villageWedding(residents, player.getUuid(), MobClock.now());
         if (pair == null) return;
         List<String> names = new ArrayList<>();
         for (UUID id : pair) {
@@ -129,7 +129,7 @@ final class FamilyController {
     void died(MobEntity mob, DamageSource source) {
         if (!bridge.config.enabled || !(mob instanceof VillagerEntity) || !(mob.getWorld() instanceof ServerWorld world)) return;
         ServerPlayerEntity killer = source.getAttacker() instanceof ServerPlayerEntity player ? player : null;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         String deadName = name(mob);
         // Трек L: кольцо, которое житель носил, падает на землю.
         for (String ring : bridge.memory.wedding().rings(mob.getUuid())) {

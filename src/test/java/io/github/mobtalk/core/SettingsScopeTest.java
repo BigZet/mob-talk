@@ -35,6 +35,8 @@ class SettingsScopeTest {
         // Будущие поля треков B и C попадают в личные по префиксу, не трогая серверные с похожим началом.
         assertTrue(SettingsScope.personal("micGain")); assertTrue(SettingsScope.personal("hudScale")); assertTrue(SettingsScope.personal("keysTalk"));
         assertTrue(SettingsScope.personal("labelsHistory")); assertTrue(SettingsScope.personal("sttPath")); assertTrue(SettingsScope.personal("voiceVolume"));
+        assertTrue(SettingsScope.personal("tableSpeed")); assertTrue(SettingsScope.personal("tableInvite"));
+        assertFalse(SettingsScope.personal("cardsVariant")); assertFalse(SettingsScope.personal("cards"));
         assertFalse(SettingsScope.personal("microwave")); assertFalse(SettingsScope.personal("whisper")); assertFalse(SettingsScope.personal("voiceFullRange"));
     }
 

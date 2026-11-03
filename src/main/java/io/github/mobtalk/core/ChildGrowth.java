@@ -60,4 +60,24 @@ public final class ChildGrowth {
         return new Newborn(gender, persona, traits, blended[0], blended[1], blended[2], blended[3]);
     }
     private static int axis(int[] values, int i) { return values == null || values.length <= i || values[i] < 0 || values[i] > 100 ? -1 : values[i]; }
+
+    private static final List<String> BABBLE = List.of("Агу!", "Ма-ма…", "Па-па!", "Гы-гы!", "А-а-агу…", "Ба-ба-ба!", "Уа-а…", "Хи-хи!");
+
+    /** What a little one can actually say: a младенец only babbles (a long or wordy reply becomes babble), a малыш says one short
+     * phrase of a few words. Older children are left as they are. */
+    public static String speakable(Stage stage, String reply, Random random) {
+        if (reply == null || reply.isBlank() || stage == null) return reply;
+        String plain = SpeechTags.strip(reply).strip();
+        String[] words = plain.split("\\s+");
+        if (stage == Stage.INFANT) {
+            boolean babble = words.length <= 4 && java.util.Arrays.stream(words).allMatch(w -> w.replaceAll("[^а-яёА-ЯЁa-zA-Z]", "").length() <= 6);
+            return babble ? reply : BABBLE.get(random.nextInt(BABBLE.size()));
+        }
+        if (stage == Stage.TODDLER && words.length > 6) {
+            String first = plain.split("(?<=[.!?…])\\s+")[0];
+            String[] w = first.split("\\s+");
+            return w.length <= 6 ? first : String.join(" ", java.util.Arrays.copyOf(w, 5)) + "…";
+        }
+        return reply;
+    }
 }

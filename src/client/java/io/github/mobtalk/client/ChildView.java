@@ -4,6 +4,8 @@ import io.github.mobtalk.game.ChildController;
 import io.github.mobtalk.game.MobGameBridge;
 import io.github.mobtalk.core.ChildLedger;
 import io.github.mobtalk.core.Pregnancy;
+import io.github.mobtalk.core.Officialdom;
+import io.github.mobtalk.game.OfficialContent;
 import net.fabricmc.fabric.api.client.rendering.v1.LivingEntityFeatureRendererRegistrationCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -52,9 +54,19 @@ final class ChildView {
     /** Самотест облика (трек M): живот без беременности в памяти мира; пустая карта — снять. */
     private static volatile Map<UUID, Float> forced = Map.of();
     static void forceBelly(Map<UUID, Float> bellies) { forced = Map.copyOf(bellies); }
+    /** Чиновники: сколько из ста честны (из настроек); зажравшийся глава и инспектор носят живот, честный — нет. */
+    private static volatile int officialHonest = 20;
+    static float officialBelly(VillagerEntity villager) {
+        Officialdom.Rank rank = OfficialContent.rank(villager);
+        if (rank == null || rank == Officialdom.Rank.CLERK || villager.isBaby()) return 0f;
+        double greed = Officialdom.greed(villager.getUuid(), officialHonest);
+        if (greed <= 0) return 0f;
+        return (float) ((rank == Officialdom.Rank.HEAD ? 0.7 : 0.4) + (rank == Officialdom.Rank.HEAD ? 0.5 : 0.3) * greed);
+    }
 
     void tick() {
         MinecraftClient client = owner.client;
+        officialHonest = owner.config().officialHonestPercent;
         MobGameBridge game = client.getServer() == null ? null : MobGameBridge.active(client.getServer());
         if (!owner.enabled() || game == null || client.world == null || !owner.config().pregnancy) { bellies = Map.of(); statuses = Map.of(); return; }
         long tick = client.world.getTimeOfDay();
@@ -114,7 +126,7 @@ final class ChildView {
         }
         @Override public void render(MatrixStack matrices, VertexConsumerProvider consumers, int light, T entity, float limbAngle, float limbDistance,
                                      float tickDelta, float animationProgress, float headYaw, float headPitch) {
-            float amount = belly(entity.getUuid());
+            float amount = Math.max(belly(entity.getUuid()), entity instanceof VillagerEntity v ? officialBelly(v) : 0f);
             if (amount <= 0 || entity.isInvisible() || entity.isBaby()) return;
             M model = getContextModel();
             matrices.push();

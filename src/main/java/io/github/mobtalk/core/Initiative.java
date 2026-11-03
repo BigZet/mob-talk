@@ -81,7 +81,7 @@ public final class Initiative {
     /** The occasion in words for the prompt. */
     public static String reason(Trigger trigger, Facts f) {
         return switch (trigger) {
-            case RETURN -> "игрок вернулся к тебе после долгого отсутствия" + (f.lastMetMillis() >= 0 ? " (его не было около " + Math.max(20, (System.currentTimeMillis() - f.lastMetMillis()) / 60_000) + " минут)" : "");
+            case RETURN -> "игрок вернулся к тебе после долгого отсутствия" + (f.lastMetMillis() >= 0 ? " (его не было около " + Math.max(20, (MobClock.now() - f.lastMetMillis()) / 60_000) + " минут)" : "");
             case BUILDING -> "игрок только что поставил или сломал много блоков рядом с тобой (" + f.blocksChanged() + "): строит, копает или ломает — посмотри, что вышло (блок «Место»), и скажи, что об этом думаешь";
             case CONCERN -> f.openDeal() ? "у тебя с игроком незакрытое дело (услуга, сделка или обещание — см. данные о торге), и он рядом" : "тебя не отпускает твоя последняя мысль, а игрок рядом";
             case WEATHER -> "только что " + (f.weatherChange().isEmpty() ? "переменилась погода" : switch (f.weatherChange()) {

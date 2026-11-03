@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.place.Place;
 import io.github.mobtalk.core.place.VoxelGrid;
 import net.minecraft.entity.mob.MobEntity;
@@ -37,7 +38,7 @@ final class BlockChangeLog {
     void broken(ServerWorld world, BlockPos pos, ServerPlayerEntity player) { record(world, pos, VoxelGrid.BROKEN); }
 
     private void record(ServerWorld world, BlockPos pos, byte how) {
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         prune(now);
         changes.addLast(new Change(world.getRegistryKey(), pos.asLong(), how, now));
         while (changes.size() > MAX_CHANGES) changes.pollFirst();
@@ -54,7 +55,7 @@ final class BlockChangeLog {
 
     /** Flags the grid's cells the player changed and returns the age in minutes of the oldest such change (0 when none). */
     synchronized int mark(VoxelGrid grid, ServerWorld world, BlockPos origin) {
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         prune(now);
         long oldest = now;
         boolean any = false;
@@ -72,7 +73,7 @@ final class BlockChangeLog {
     /** How many blocks the player placed or broke within {@code range} of {@code origin} in the last {@code withinMillis}: a creature
      * remarks on a building or a pit going up next to it (see Initiative). */
     synchronized int countNear(ServerWorld world, BlockPos origin, double range, long withinMillis) {
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         prune(now);
         int count = 0;
         double limit = range * range;
@@ -86,7 +87,7 @@ final class BlockChangeLog {
     /** Once a tick: runs the due checks, at most one per tick, and tells a creature that was just shut in who did it. */
     void tick(MobGameBridge bridge, ServerWorld world) {
         if (pending.isEmpty()) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         Iterator<Map.Entry<UUID, Long>> it = pending.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<UUID, Long> entry = it.next();

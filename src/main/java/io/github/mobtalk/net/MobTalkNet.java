@@ -57,6 +57,7 @@ public final class MobTalkNet {
         PayloadTypeRegistry.playC2S().register(MobActionC2S.ID, MobActionC2S.CODEC);
         PayloadTypeRegistry.playC2S().register(PlayerSettingsC2S.ID, PlayerSettingsC2S.CODEC);
         PayloadTypeRegistry.playC2S().register(ScreenRequestC2S.ID, ScreenRequestC2S.CODEC);
+        PayloadTypeRegistry.playC2S().register(CardTableActionC2S.ID, CardTableActionC2S.CODEC);
         PayloadTypeRegistry.playC2S().register(SelfTestLine.ID, SelfTestLine.CODEC);
         PayloadTypeRegistry.playC2S().register(MomentKeyC2S.ID, MomentKeyC2S.CODEC);
         PayloadTypeRegistry.playC2S().register(RecStateC2S.ID, RecStateC2S.CODEC);
@@ -73,6 +74,8 @@ public final class MobTalkNet {
         PayloadTypeRegistry.playS2C().register(ScreenDataS2C.ID, ScreenDataS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(NoticeS2C.ID, NoticeS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(OverlayStateS2C.ID, OverlayStateS2C.CODEC);
+        PayloadTypeRegistry.playS2C().register(CardTableOpenS2C.ID, CardTableOpenS2C.CODEC);
+        PayloadTypeRegistry.playS2C().register(CardTableStateS2C.ID, CardTableStateS2C.CODEC);
         PayloadTypeRegistry.playS2C().register(SelfTestLine.ID, SelfTestLine.CODEC);
         PayloadTypeRegistry.playS2C().register(MomentS2C.ID, MomentS2C.CODEC);
     }

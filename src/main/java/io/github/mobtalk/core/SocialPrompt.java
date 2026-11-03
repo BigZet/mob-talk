@@ -64,7 +64,8 @@ final class SocialPrompt {
         Gender playerGender = Gender.ofPlayer(config.playerGender);
         if (courtship == Courtship.MARRIED) facts.add("этот игрок — " + (playerGender == null ? "твой супруг" : playerGender == Gender.MALE ? "твой муж" : "твоя жена") + ", вы в браке.");
         else if (courtship == Courtship.DATING) facts.add("вы с этим игроком встречаетесь — вы пара, но ещё не женаты.");
-        if (tree.parents(mob).contains(player)) facts.add("этот игрок — " + (playerGender == null ? "твой родитель" : playerGender == Gender.MALE ? "твой отец" : "твоя мать") + ", ты его ребёнок.");
+        if (tree.parents(mob).contains(player)) facts.add("этот игрок — " + (playerGender == null ? "твой родитель" : playerGender == Gender.MALE ? "твой отец" : "твоя мать") + ", ты его ребёнок. "
+                + "Зови его " + (playerGender == Gender.FEMALE ? "«мама»" : playerGender == Gender.MALE ? "«папа»" : "«мама» или «папа»") + ", а не по имени.");
         if (tree.children(mob).contains(player)) facts.add("этот игрок — твой ребёнок.");
         if (tree.widowed(player) && tree.links(player).containsKey(mob)) facts.add("он твой вдовец.");
         return facts;
@@ -75,7 +76,8 @@ final class SocialPrompt {
         List<String> lines = new ArrayList<>();
         for (FamilyTree.Kin kin : family) {
             String name = kin.name().isBlank() ? "без имени" : kin.name();
-            lines.add(name + " — " + (feminine(kin.word()) ? "твоя " : "твой ") + kin.word()
+            String call = "мать".equals(kin.word()) ? ", зови её «мама»" : "отец".equals(kin.word()) ? ", зови его «папа»" : "";
+            lines.add(name + " — " + (feminine(kin.word()) ? "твоя " : "твой ") + kin.word() + call
                     + (kin.dead() ? ", его уже нет в живых — ты горюешь" : present != null && present.contains(kin.id()) ? " (сейчас рядом)" : ""));
         }
         return lines;
@@ -83,11 +85,35 @@ final class SocialPrompt {
     /** How the village sees this player, one line; "" for a stranger or outside the layer. */
     static String standing(ConversationStore.Profile p) {
         String line = p == null ? "" : VillageStanding.describe(p.standing);
-        return line.isBlank() ? "" : "\nДеревня об этом игроке (факт, не пересказывай): " + line + ".";
+        String god = p == null || p.divine == null ? "" : p.divine;
+        return (line.isBlank() ? "" : "\nДеревня об этом игроке (факт, не пересказывай): " + line + ".")
+                + (god.isBlank() ? "" : "\nБожий суд (факт, говори с трепетом, крестись на словах, без насмешки над верой): " + god + ".");
+    }
+    /** Б1: what the village knows of the god's deeds about this player now — the curse over it and whose it is, a blessing, the bell
+     * assembly or the exile it decided; "" for nothing (or when the setting is off). */
+    static String divine(ConversationStore.State state, String villageId, java.util.UUID player, long now) {
+        if (!Tuning.get().divineTidings || state.divine == null || villageId == null || villageId.isBlank() || player == null) return "";
+        List<String> parts = new ArrayList<>();
+        DivineTidings.CurseView curse = state.divine.curseOn(villageId, now);
+        if (curse != null) {
+            if (curse.blames(player)) parts.add("на деревне сейчас божья кара «" + curse.title() + "» за ЕГО грехи — ты боишься и винишь его, просишь покаяться у алтаря");
+            else if (curse.known()) parts.add("на деревне сейчас божья кара «" + curse.title() + "» за грехи игрока " + curse.culpritName() + ", не этого");
+            else parts.add("на деревне сейчас божья кара «" + curse.title() + "», за чьи грехи — не знаешь");
+        }
+        String blessing = state.divine.blessing(player, now);
+        if (!blessing.isBlank()) parts.add("бог явил ему милость «" + blessing + "» — ты зовёшь его благословенным и рад ему");
+        if (state.divine.exiled(villageId, player)) parts.add("сход у колокола изгнал его за навлечённый гнев божий — прощение только через покаяние");
+        else for (DivineTidings.AssemblyView a : state.divine.assemblies())
+            if (a.village().equals(villageId) && a.player().equals(player)) { parts.add("староста созвал сход у колокола: если он не покается до заката, деревня его изгонит"); break; }
+        return String.join("; ", parts);
     }
     /** Why the spouse will not have a child now, or null when it agrees. */
-    static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) {
+    static String childRefusal(int score, boolean infertile, boolean expecting, boolean tooSoon) { return childRefusal(score, infertile, expecting, false, tooSoon); }
+    /** {@code trying}: the couple already agreed and waits for a night together; {@code expecting}: she is with child. */
+    static String childRefusal(int score, boolean infertile, boolean expecting, boolean trying, boolean tooSoon) {
         if (expecting) return "ребёнок у вас уже на подходе";
+        if (trying) return "вы уже договорились и стараетесь: скажи прямо и тепло, что согласна давно, а малыш бывает от ночи вместе в одной кровати "
+                + "(лучше особый вечер: свечи, цветы, уют) — позови спать вместе, не говори «пусть случится в своё время» и не намекай, будто ребёнок уже есть";
         if (tooSoon) return "рано: с прошлого раза прошло меньше трёх игровых дней";
         if (infertile) return "у тебя не может быть детей — это твоя боль";
         if (score < Hearts.marriage()) return "сейчас между вами не та близость";

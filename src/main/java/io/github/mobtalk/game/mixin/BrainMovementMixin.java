@@ -18,9 +18,11 @@ abstract class BrainMovementMixin {
     @Inject(method = "tick", at = @At("HEAD"))
     private void mobtalk$owner(ServerWorld world, LivingEntity entity, CallbackInfo ci) {
         mobtalk$owner = entity instanceof MobEntity mob ? mob : null;
+        MobGameBridge.thinking(mobtalk$owner);
     }
     @Inject(method = "tick", at = @At("RETURN"))
     private void mobtalk$movement(ServerWorld world, LivingEntity entity, CallbackInfo ci) {
+        MobGameBridge.thinking(null);
         MobGameBridge.afterBrain(world, entity);
     }
     @Inject(method = {"getOptionalMemory", "getOptionalRegisteredMemory"}, at = @At("HEAD"), cancellable = true)

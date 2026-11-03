@@ -155,6 +155,7 @@ final class MobActionController {
         Long last = alarms.get(villager.getUuid());
         if (last != null && now - last < ALARM_COOLDOWN) return;
         alarms.put(villager.getUuid(), now);
+        bridge.defense.hated(villager, player);
         boolean called = false;
         for (net.minecraft.entity.passive.IronGolemEntity golem : world.getEntitiesByClass(net.minecraft.entity.passive.IronGolemEntity.class,
                 villager.getBoundingBox().expand(16), other -> other.isAlive() && !other.isRemoved())) {
@@ -380,6 +381,7 @@ final class MobActionController {
         Lease lease = leases.get(mob.getUuid());
         if (lease == null && bridge.coSleep.afterBrain(mob)) return; // Трек J: идёт к кровати или спит рядом с игроком.
         if (lease == null && bridge.children.afterBrain(mob)) return; // Трек N: в схватках идёт к своей кровати.
+        if (lease == null && bridge.moods.afterBrain(mob)) return; // Апатия: лежит в своей кровати днём и ночью.
         if (lease == null && friends.afterBrain(mob)) return;
         if (lease == null && bridge.social.standing(mob)) { bridge.social.afterBrain(mob); return; }
         if (lease == null && attentive(mob)) {

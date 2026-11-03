@@ -1,0 +1,34 @@
+{
+  "variants": {
+    "facing=north,half=lower": {
+      "model": "mobtalk:block/casino/casino_slot_machine_lower"
+    },
+    "facing=north,half=upper": {
+      "model": "mobtalk:block/casino/casino_slot_machine_upper"
+    },
+    "facing=east,half=lower": {
+      "model": "mobtalk:block/casino/casino_slot_machine_lower",
+      "y": 90
+    },
+    "facing=east,half=upper": {
+      "model": "mobtalk:block/casino/casino_slot_machine_upper",
+      "y": 90
+    },
+    "facing=south,half=lower": {
+      "model": "mobtalk:block/casino/casino_slot_machine_lower",
+      "y": 180
+    },
+    "facing=south,half=upper": {
+      "model": "mobtalk:block/casino/casino_slot_machine_upper",
+      "y": 180
+    },
+    "facing=west,half=lower": {
+      "model": "mobtalk:block/casino/casino_slot_machine_lower",
+      "y": 270
+    },
+    "facing=west,half=upper": {
+      "model": "mobtalk:block/casino/casino_slot_machine_upper",
+      "y": 270
+    }
+  }
+}

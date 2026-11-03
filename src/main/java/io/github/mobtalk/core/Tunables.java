@@ -83,6 +83,11 @@ public final class Tunables {
         integer("keenInterest", t, "state", 0, 100, 1, c -> c.keenInterest, (c, x) -> c.keenInterest = x);
         integer("generousMood", t, "state", 0, 100, 1, c -> c.generousMood, (c, x) -> c.generousMood = x);
         integer("generousTrust", t, "state", 0, 100, 1, c -> c.generousTrust, (c, x) -> c.generousTrust = x);
+        integer("moodWorldPercent", t, "state", 0, 200, 10, c -> c.moodWorldPercent, (c, x) -> c.moodWorldPercent = x);
+        integer("moodSpellPercent", t, "state", 0, 200, 10, c -> c.moodSpellPercent, (c, x) -> c.moodSpellPercent = x);
+        integer("moodReplyPercent", t, "state", 0, 100, 10, c -> c.moodReplyPercent, (c, x) -> c.moodReplyPercent = x);
+        integer("moodHungerMinutes", t, "state", 0, 240, 5, c -> c.moodHungerMinutes, (c, x) -> c.moodHungerMinutes = x);
+        integer("moodApathyBed", t, "state", 0, 1, 1, c -> c.moodApathyBed, (c, x) -> c.moodApathyBed = x);
 
         // Memory: history, facts, summaries, reflections.
         integer("historyTurns", t, "memory", 1, 64, 1, c -> c.historyTurns, (c, x) -> c.historyTurns = x);
@@ -121,7 +126,26 @@ public final class Tunables {
         integer("jealousyAttention", s, "jealousy", 0, 30, 1, c -> c.jealousyAttention, (c, x) -> c.jealousyAttention = x);
         integer("coSleepRange", s, "jealousy", 2, 32, 1, c -> c.coSleepRange, (c, x) -> c.coSleepRange = x);
         integer("coSleepHearts", s, "jealousy", 0, 20, 1, c -> c.coSleepHearts, (c, x) -> c.coSleepHearts = x);
+        // Игра в 21 с жителем (docs/cards-21.md).
+        integer("cardsMinBet", s, "cards", 1, 16, 1, c -> c.cardsMinBet, (c, x) -> c.cardsMinBet = x);
+        integer("cardsMaxBet", s, "cards", 1, 64, 1, c -> c.cardsMaxBet, (c, x) -> c.cardsMaxBet = x);
+        integer("cardsDailyLoss", s, "cards", 0, 640, 1, c -> c.cardsDailyLoss, (c, x) -> c.cardsDailyLoss = x);
+        integer("cardsPurseStart", s, "cards", 0, 64, 1, c -> c.cardsPurseStart, (c, x) -> c.cardsPurseStart = x);
+        integer("cardsPursePerDay", s, "cards", 0, 16, 1, c -> c.cardsPursePerDay, (c, x) -> c.cardsPursePerDay = x);
+        integer("cardsSeats", s, "cards", 1, 4, 1, c -> c.cardsSeats, (c, x) -> c.cardsSeats = x);
+        integer("cardsTurnSeconds", s, "cards", 10, 120, 5, c -> c.cardsTurnSeconds, (c, x) -> c.cardsTurnSeconds = x);
+        integer("tableVolume", s, "cards", 0, 100, 5, c -> c.tableVolume, (c, x) -> c.tableVolume = x);
         integer("coSleepNightDelay", s, "jealousy", 0, 300, 5, c -> c.coSleepNightDelay, (c, x) -> c.coSleepNightDelay = x);
+        // Соперники за одно сердце (П3).
+        integer("rivalWindowHours", s, "rivals", 1, 168, 1, c -> c.rivalWindowHours, (c, x) -> c.rivalWindowHours = x);
+        integer("rivalMaxSuitors", s, "rivals", 2, 5, 1, c -> c.rivalMaxSuitors, (c, x) -> c.rivalMaxSuitors = x);
+        integer("rivalStealMargin", s, "rivals", 0, 50, 1, c -> c.rivalStealMargin, (c, x) -> c.rivalStealMargin = x);
+        integer("rivalTrialWin", s, "rivals", 0, 30, 1, c -> c.rivalTrialWin, (c, x) -> c.rivalTrialWin = x);
+        integer("rivalTrialTry", s, "rivals", 0, 10, 1, c -> c.rivalTrialTry, (c, x) -> c.rivalTrialTry = x);
+        integer("rivalStrong", s, "rivals", 40, 100, 1, c -> c.rivalStrong, (c, x) -> c.rivalStrong = x);
+        integer("rivalGatherMinutes", s, "rivals", 1, 15, 1, c -> c.rivalGatherMinutes, (c, x) -> c.rivalGatherMinutes = x);
+        integer("rivalLoserPenalty", s, "rivals", 0, 30, 1, c -> c.rivalLoserPenalty, (c, x) -> c.rivalLoserPenalty = x);
+        integer("rivalLoserPauseHours", s, "rivals", 0, 24, 1, c -> c.rivalLoserPauseHours, (c, x) -> c.rivalLoserPauseHours = x);
         // Свадьба у колокола (трек L).
         integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
         integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);
@@ -180,6 +204,75 @@ public final class Tunables {
         integer("villageFriendPoints", s, "village", 0, 1000, 10, c -> c.villageFriendPoints, (c, x) -> c.villageFriendPoints = x);
         integer("villageGuardPoints", s, "village", 0, 2000, 10, c -> c.villageGuardPoints, (c, x) -> c.villageGuardPoints = x);
         integer("villageElderPoints", s, "village", 0, 3000, 10, c -> c.villageElderPoints, (c, x) -> c.villageElderPoints = x);
+        // Village defence: the alarm and the golem.
+        integer("defenseZoneMargin", s, "defense", 0, 64, 1, c -> c.defenseZoneMargin, (c, x) -> c.defenseZoneMargin = x);
+        integer("alarmMonsterRange", s, "defense", 4, 48, 1, c -> c.alarmMonsterRange, (c, x) -> c.alarmMonsterRange = x);
+        integer("alarmAttackThreats", s, "defense", 1, 30, 1, c -> c.alarmAttackThreats, (c, x) -> c.alarmAttackThreats = x);
+        integer("alarmClearSeconds", s, "defense", 10, 600, 5, c -> c.alarmClearSeconds, (c, x) -> c.alarmClearSeconds = x);
+        integer("alarmPlayerClearMinutes", s, "defense", 1, 30, 1, c -> c.alarmPlayerClearMinutes, (c, x) -> c.alarmPlayerClearMinutes = x);
+        integer("alarmPlayerRange", s, "defense", 16, 160, 4, c -> c.alarmPlayerRange, (c, x) -> c.alarmPlayerRange = x);
+        integer("alarmNoticeRange", s, "defense", 32, 1024, 16, c -> c.alarmNoticeRange, (c, x) -> c.alarmNoticeRange = x);
+        integer("golemHealthPercent", s, "defense", 100, 400, 10, c -> c.golemHealthPercent, (c, x) -> c.golemHealthPercent = x);
+        integer("golemRegenPerMinute", s, "defense", 0, 120, 1, c -> c.golemRegenPerMinute, (c, x) -> c.golemRegenPerMinute = x);
+        integer("golemRepairHealth", s, "defense", 0, 100, 1, c -> c.golemRepairHealth, (c, x) -> c.golemRepairHealth = x);
+        // Watchtowers and their archers.
+        integer("towerResidents", s, "towers", 2, 40, 1, c -> c.towerResidents, (c, x) -> c.towerResidents = x);
+        integer("towerMax", s, "towers", 0, 8, 1, c -> c.towerMax, (c, x) -> c.towerMax = x);
+        integer("towerBuildMinutes", s, "towers", 1, 120, 1, c -> c.towerBuildMinutes, (c, x) -> c.towerBuildMinutes = x);
+        integer("archerRange", s, "towers", 8, 64, 1, c -> c.archerRange, (c, x) -> c.archerRange = x);
+        integer("archerShotTenths", s, "towers", 5, 100, 1, c -> c.archerShotTenths, (c, x) -> c.archerShotTenths = x);
+        integer("archerReplaceMinutes", s, "towers", 1, 240, 1, c -> c.archerReplaceMinutes, (c, x) -> c.archerReplaceMinutes = x);
+        integer("towerLargeResidents", s, "towers", 0, 60, 1, c -> c.towerLargeResidents, (c, x) -> c.towerLargeResidents = x);
+        integer("crossbowRange", s, "towers", 8, 64, 1, c -> c.crossbowRange, (c, x) -> c.crossbowRange = x);
+        integer("crossbowShotTenths", s, "towers", 5, 100, 1, c -> c.crossbowShotTenths, (c, x) -> c.crossbowShotTenths = x);
+        // Village bars.
+        integer("barOpenHour", s, "bars", 12, 23, 1, c -> c.barOpenHour, (c, x) -> c.barOpenHour = x);
+        integer("barCloseHour", s, "bars", 13, 30, 1, c -> c.barCloseHour, (c, x) -> c.barCloseHour = x);
+        integer("barVisitors", s, "bars", 2, 12, 1, c -> c.barVisitors, (c, x) -> c.barVisitors = x);
+        integer("barVisitPercent", s, "bars", 0, 100, 5, c -> c.barVisitPercent, (c, x) -> c.barVisitPercent = x);
+        integer("barTalkSeconds", s, "bars", 10, 600, 5, c -> c.barTalkSeconds, (c, x) -> c.barTalkSeconds = x);
+        // Guards with swords and shields.
+        integer("watchResidents", s, "guards", 2, 30, 1, c -> c.watchResidents, (c, x) -> c.watchResidents = x);
+        integer("watchMin", s, "guards", 0, 8, 1, c -> c.watchMin, (c, x) -> c.watchMin = x);
+        integer("watchMax", s, "guards", 0, 16, 1, c -> c.watchMax, (c, x) -> c.watchMax = x);
+        integer("watchHealth", s, "guards", 20, 100, 1, c -> c.watchHealth, (c, x) -> c.watchHealth = x);
+        integer("watchDamage", s, "guards", 1, 20, 1, c -> c.watchDamage, (c, x) -> c.watchDamage = x);
+        integer("watchSight", s, "guards", 8, 48, 1, c -> c.watchSight, (c, x) -> c.watchSight = x);
+        integer("watchReplaceMinutes", s, "guards", 1, 240, 1, c -> c.watchReplaceMinutes, (c, x) -> c.watchReplaceMinutes = x);
+        integer("heavyHealth", s, "guards", 20, 120, 1, c -> c.heavyHealth, (c, x) -> c.heavyHealth = x);
+        integer("heavyDamage", s, "guards", 1, 30, 1, c -> c.heavyDamage, (c, x) -> c.heavyDamage = x);
+        // Officials and their bribes.
+        integer("officialHonestPercent", s, "officials", 0, 100, 5, c -> c.officialHonestPercent, (c, x) -> c.officialHonestPercent = x);
+        integer("officialPricePercent", s, "officials", 10, 500, 10, c -> c.officialPricePercent, (c, x) -> c.officialPricePercent = x);
+        integer("officialResidents", s, "officials", 0, 40, 1, c -> c.officialResidents, (c, x) -> c.officialResidents = x);
+        integer("inspectorFine", s, "officials", 1, 64, 1, c -> c.inspectorFine, (c, x) -> c.inspectorFine = x);
+        integer("inspectorBlocks", s, "officials", 1, 200, 1, c -> c.inspectorBlocks, (c, x) -> c.inspectorBlocks = x);
+        integer("inspectorDays", s, "officials", 1, 7, 1, c -> c.inspectorDays, (c, x) -> c.inspectorDays = x);
+        // The village casino.
+        integer("casinoWeight", s, "casino", 0, 20, 1, c -> c.casinoWeight, (c, x) -> c.casinoWeight = x);
+        integer("bouncerHealth", s, "casino", 20, 150, 5, c -> c.bouncerHealth, (c, x) -> c.bouncerHealth = x);
+        integer("bouncerDamage", s, "casino", 1, 30, 1, c -> c.bouncerDamage, (c, x) -> c.bouncerDamage = x);
+        integer("casinoPlayersPerTable", s, "casino", 0, 4, 1, c -> c.casinoPlayersPerTable, (c, x) -> c.casinoPlayersPerTable = x);
+        // Roads between villages.
+        integer("roadScanRadius", s, "roads", 250, 4000, 50, c -> c.roadScanRadius, (c, x) -> c.roadScanRadius = x);
+        integer("roadMaxLength", s, "roads", 200, 2000, 50, c -> c.roadMaxLength, (c, x) -> c.roadMaxLength = x);
+        integer("roadLampSpacing", s, "roads", 8, 64, 2, c -> c.roadLampSpacing, (c, x) -> c.roadLampSpacing = x);
+        integer("roadTreeStrip", s, "roads", 0, 8, 1, c -> c.roadTreeStrip, (c, x) -> c.roadTreeStrip = x);
+        integer("roadTraffic", s, "roads", 0, 6, 1, c -> c.roadTraffic, (c, x) -> c.roadTraffic = x);
+        integer("paperworkSteps", s, "officials", 0, 5, 1, c -> c.paperworkSteps, (c, x) -> c.paperworkSteps = x);
+        integer("passportFee", s, "officials", 0, 64, 1, c -> c.passportFee, (c, x) -> c.passportFee = x);
+        integer("passportDays", s, "officials", 0, 7, 1, c -> c.passportDays, (c, x) -> c.passportDays = x);
+        integer("queueSeconds", s, "officials", 0, 60, 2, c -> c.queueSeconds, (c, x) -> c.queueSeconds = x);
+        integer("dachaPoints", s, "officials", 1, 20, 1, c -> c.dachaPoints, (c, x) -> c.dachaPoints = x);
+        integer("smitePercent", s, "officials", 0, 100, 5, c -> c.smitePercent, (c, x) -> c.smitePercent = x);
+        integer("revizorSeconds", s, "officials", 10, 300, 10, c -> c.revizorSeconds, (c, x) -> c.revizorSeconds = x);
+        // The god's deeds in the villages (Б1).
+        integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
+        integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
+        integer("divineSurcharge", s, "divine", 0, 100, 5, c -> c.divineSurcharge, (c, x) -> c.divineSurcharge = x);
+        integer("divineBlessDiscount", s, "divine", 0, 50, 5, c -> c.divineBlessDiscount, (c, x) -> c.divineBlessDiscount = x);
+        integer("divineAssemblyCurses", s, "divine", 0, 10, 1, c -> c.divineAssemblyCurses, (c, x) -> c.divineAssemblyCurses = x);
+        integer("divinePersonalRadius", s, "divine", 16, 256, 8, c -> c.divinePersonalRadius, (c, x) -> c.divinePersonalRadius = x);
 
         // Friendly duties (STAY, GUARD, SPARE).
         integer("friendLeaseMinutes", a, "friends", 1, 60, 1, c -> c.friendLeaseMinutes, (c, x) -> c.friendLeaseMinutes = x);
@@ -219,6 +312,7 @@ public final class Tunables {
         config.villageElderPoints = Math.max(config.villageElderPoints, config.villageGuardPoints);
         config.guardFar = Math.max(config.guardFar, config.guardNear);
         config.guardChase = Math.max(config.guardChase, config.guardAlert);
+        config.watchMax = Math.max(config.watchMax, config.watchMin);
     }
 
     /** Copies every number as it is, unclamped: a draft keeps what the file said until it is saved. */
@@ -233,11 +327,11 @@ public final class Tunables {
         reset(config, section);
         MobTalkConfig d = DEFAULTS;
         switch (section) {
-            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.humanVillagers = d.humanVillagers; }
+            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.labelsMoodFace = d.labelsMoodFace; config.humanVillagers = d.humanVillagers; }
             case VOICE -> {
                 config.whisperModel = d.whisperModel; config.whisperDevice = d.whisperDevice; config.whisperLanguage = d.whisperLanguage;
                 config.whisperAutoStart = d.whisperAutoStart; config.whisperUrl = d.whisperUrl; config.whisperHotwords = d.whisperHotwords;
-                config.ttsProvider = d.ttsProvider; config.ttsModel = d.ttsModel; config.veniceTtsModel = d.veniceTtsModel; config.veniceVoice = d.veniceVoice;
+                config.ttsProvider = d.ttsProvider; config.ttsModel = d.ttsModel; config.veniceTtsModel = d.veniceTtsModel; config.veniceVoice = d.veniceVoice; config.ttsTags = d.ttsTags;
             }
             case MODEL -> {
                 config.llmProvider = d.llmProvider; config.llmModel = d.llmModel; config.veniceModel = d.veniceModel;
@@ -246,12 +340,18 @@ public final class Tunables {
             case TALK -> config.rudeness = d.rudeness;
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
+                config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
                 config.confession = d.confession; config.confessionAbbotsOnly = d.confessionAbbotsOnly; config.confessionHistoryText = d.confessionHistoryText;
                 config.confessionStreamerPublic = d.confessionStreamerPublic; config.confessionPenancesOff = d.confessionPenancesOff;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
                 config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.villageParrotJokes = d.villageParrotJokes;
+                config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.officialDacha = d.officialDacha; config.officialSmite = d.officialSmite; config.officialRevizor = d.officialRevizor; config.officialsShameless = d.officialsShameless; config.officialGossip = d.officialGossip; config.officialPapers = d.officialPapers; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
+                config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors; config.casinoResort = d.casinoResort; config.casinoSparkles = d.casinoSparkles;
+                config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
+                config.cards = d.cards; config.cardsVariant = d.cardsVariant; config.cardsItemStakes = d.cardsItemStakes; config.cardsCheating = d.cardsCheating;
+                config.tableInvite = d.tableInvite; config.tableLines = d.tableLines; config.tableSpeed = d.tableSpeed; config.tableHint = d.tableHint;
             }
             case ACTIONS -> { config.placeAnalysis = d.placeAnalysis; config.placeClassifier = d.placeClassifier; }
         }

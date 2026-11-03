@@ -132,6 +132,9 @@ public final class WeddingController {
         if (!(spouse.getWorld() instanceof ServerWorld world) || player.getWorld() != world) return "";
         if (!daytime(world)) return "Свадьбы играют днём: позовите на свадьбу утром";
         if (world.hasRaidAt(spouse.getBlockPos())) return "Не до свадьбы: на деревню напали";
+        if (bridge.defense.alarmAt(world, spouse.getBlockPos()) != null) return "Не до свадьбы: в деревне тревога";
+        if (bridge.config.passportForWedding && bridge.passports.enabled() && !OfficialContent.hasPassport(player))
+            return "Без паспорта не распишут: получите паспорт у паспортистки (Shift+ПКМ по ней у казённого стола)";
         Venue venue = venue(world, spouse);
         boolean quiet = venue == null;
         Vec3d toPlayer = flat(player.getPos().subtract(quiet ? spouse.getPos() : venue.plaza()));
@@ -142,7 +145,7 @@ public final class WeddingController {
         Vec3d anchor = quiet ? spouse.getPos().subtract(forward.multiply(Wedding.COUPLE_FORWARD)) : venue.plaza();
         if (!quiet) forward = fit(world, anchor, forward, venue.walkable());
         double range = quiet ? 16 : bridge.config.weddingRange;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         List<VillagerEntity> around = villagers(world, anchor, range);
         if (!around.contains(spouse)) around.add(spouse);
         List<WeddingLedger.Resident> residents = around.stream().map(v -> new WeddingLedger.Resident(v.getUuid(), name(v), profession(v), !v.isBaby())).toList();
@@ -174,14 +177,14 @@ public final class WeddingController {
     /** Свадьба двух жителей сценой у колокола: пара уже выбрана (и ещё не женаты). true — сцена началась. */
     boolean startVillage(ServerWorld world, UUID first, UUID second, ServerPlayerEntity near) {
         if (!enabled() || scene != null || !(world.getEntity(first) instanceof VillagerEntity a) || !(world.getEntity(second) instanceof VillagerEntity b)) return false;
-        if (!daytime(world) || world.hasRaidAt(a.getBlockPos())) return false;
+        if (!daytime(world) || world.hasRaidAt(a.getBlockPos()) || bridge.defense.alarmAt(world, a.getBlockPos()) != null) return false;
         if (bridge.memory.social().household(first).spouse() != null || bridge.memory.social().household(second).spouse() != null) return false; // Уже в браке.
         Venue venue = venue(world, a);
         if (venue == null) return false;
         Vec3d anchor = venue.plaza();
         Vec3d forward = flat(near.getPos().subtract(anchor));
         forward = fit(world, anchor, forward.lengthSquared() < 0.25 ? new Vec3d(0, 0, 1) : forward.normalize(), venue.walkable());
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         List<VillagerEntity> around = villagers(world, anchor, bridge.config.weddingRange);
         for (VillagerEntity v : List.of(a, b)) if (!around.contains(v)) around.add(v);
         List<WeddingLedger.Resident> residents = around.stream().map(v -> new WeddingLedger.Resident(v.getUuid(), name(v), profession(v), !v.isBaby())).toList();
@@ -237,7 +240,7 @@ public final class WeddingController {
         Scene s = scene;
         if (s == null) { if (world.getTime() % CLEAN_PERIOD == 113) clean(world); return; }
         if (s.world != world) return;
-        long t = world.getTime(), now = System.currentTimeMillis();
+        long t = world.getTime(), now = MobClock.now();
         for (Iterator<Long> it = s.bells.iterator(); it.hasNext(); ) {
             long at = it.next();
             if (t >= at) { it.remove(); world.playSound(null, BlockPos.ofFloored(s.anchor), SoundEvents.BLOCK_BELL_USE, SoundCategory.BLOCKS, 2.0f, 1.0f); }
@@ -272,7 +275,8 @@ public final class WeddingController {
         }
         if (s.hurt) return "игрок ударил гостя — какая уж тут свадьба";
         if (world.hasRaidAt(BlockPos.ofFloored(s.anchor))) return "на деревню напали";
-        if (s.ceremony.phase() == Wedding.Ceremony.Phase.GATHER && world.getTimeOfDay() % DAY >= 13_000) return "наступила ночь";
+        if (bridge.defense.alarmAt(world, BlockPos.ofFloored(s.anchor)) != null) return "в деревне тревога";
+        if (world.getTimeOfDay() % DAY >= NIGHT) return "наступила ночь"; // no wedding at night (Dmitriy, 2026-10-25)
         return null;
     }
 
@@ -427,7 +431,7 @@ public final class WeddingController {
         if (scene != s) return;
         scene = null;
         Wedding.Ceremony c = s.ceremony;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         boolean married = c.married();
         if (why != null && !married) {
             c.cancel();
@@ -598,7 +602,9 @@ public final class WeddingController {
 
     // ---- Где колокол и кто вокруг. ----
 
-    private static boolean daytime(ServerWorld world) { return world.getTimeOfDay() % DAY < 12_000; }
+    /** A wedding starts in the morning or by day, early enough to be played before dusk; at {@link #NIGHT} an unfinished one is put off. */
+    private static boolean daytime(ServerWorld world) { return world.getTimeOfDay() % DAY < LATEST_START; }
+    static final long LATEST_START = 9_000, NIGHT = 12_000;
     /** Деревня свадьбы: своя деревня жителя, иначе та, в чьей постройке стоит колокол, иначе ближайшая известная. */
     private ConversationStore.Village village(ServerWorld world, VillagerEntity villager, Vec3d anchor) {
         ConversationStore.Village own = bridge.memory.village(bridge.memory.villageOf(villager.getUuid()));

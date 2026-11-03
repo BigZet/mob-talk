@@ -1,0 +1,80 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "letter_6_0": "mobtalk:block/casino/letter_6_0",
+    "walnut": "mobtalk:block/casino/walnut",
+    "gold_trim": "mobtalk:block/casino/gold_trim",
+    "particle": "mobtalk:block/casino/gold_trim"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        0,
+        12.5
+      ],
+      "to": [
+        16,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#letter_6_0",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        },
+        "east": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            0,
+            3.5,
+            16
+          ]
+        },
+        "west": {
+          "texture": "#gold_trim",
+          "uv": [
+            12.5,
+            0,
+            16,
+            16
+          ]
+        },
+        "up": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            12.5,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#gold_trim",
+          "uv": [
+            0,
+            0,
+            16,
+            3.5
+          ]
+        }
+      }
+    }
+  ],
+  "ambientocclusion": false
+}

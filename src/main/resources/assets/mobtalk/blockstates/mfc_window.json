@@ -1,0 +1,139 @@
+{
+  "variants": {
+    "facing=north,number=1": {
+      "model": "mobtalk:block/mfc_window_1"
+    },
+    "facing=north,number=2": {
+      "model": "mobtalk:block/mfc_window_2"
+    },
+    "facing=north,number=3": {
+      "model": "mobtalk:block/mfc_window_3"
+    },
+    "facing=north,number=4": {
+      "model": "mobtalk:block/mfc_window_4"
+    },
+    "facing=north,number=5": {
+      "model": "mobtalk:block/mfc_window_5"
+    },
+    "facing=north,number=6": {
+      "model": "mobtalk:block/mfc_window_6"
+    },
+    "facing=north,number=7": {
+      "model": "mobtalk:block/mfc_window_7"
+    },
+    "facing=north,number=8": {
+      "model": "mobtalk:block/mfc_window_8"
+    },
+    "facing=north,number=9": {
+      "model": "mobtalk:block/mfc_window_9"
+    },
+    "facing=east,number=1": {
+      "model": "mobtalk:block/mfc_window_1",
+      "y": 90
+    },
+    "facing=east,number=2": {
+      "model": "mobtalk:block/mfc_window_2",
+      "y": 90
+    },
+    "facing=east,number=3": {
+      "model": "mobtalk:block/mfc_window_3",
+      "y": 90
+    },
+    "facing=east,number=4": {
+      "model": "mobtalk:block/mfc_window_4",
+      "y": 90
+    },
+    "facing=east,number=5": {
+      "model": "mobtalk:block/mfc_window_5",
+      "y": 90
+    },
+    "facing=east,number=6": {
+      "model": "mobtalk:block/mfc_window_6",
+      "y": 90
+    },
+    "facing=east,number=7": {
+      "model": "mobtalk:block/mfc_window_7",
+      "y": 90
+    },
+    "facing=east,number=8": {
+      "model": "mobtalk:block/mfc_window_8",
+      "y": 90
+    },
+    "facing=east,number=9": {
+      "model": "mobtalk:block/mfc_window_9",
+      "y": 90
+    },
+    "facing=south,number=1": {
+      "model": "mobtalk:block/mfc_window_1",
+      "y": 180
+    },
+    "facing=south,number=2": {
+      "model": "mobtalk:block/mfc_window_2",
+      "y": 180
+    },
+    "facing=south,number=3": {
+      "model": "mobtalk:block/mfc_window_3",
+      "y": 180
+    },
+    "facing=south,number=4": {
+      "model": "mobtalk:block/mfc_window_4",
+      "y": 180
+    },
+    "facing=south,number=5": {
+      "model": "mobtalk:block/mfc_window_5",
+      "y": 180
+    },
+    "facing=south,number=6": {
+      "model": "mobtalk:block/mfc_window_6",
+      "y": 180
+    },
+    "facing=south,number=7": {
+      "model": "mobtalk:block/mfc_window_7",
+      "y": 180
+    },
+    "facing=south,number=8": {
+      "model": "mobtalk:block/mfc_window_8",
+      "y": 180
+    },
+    "facing=south,number=9": {
+      "model": "mobtalk:block/mfc_window_9",
+      "y": 180
+    },
+    "facing=west,number=1": {
+      "model": "mobtalk:block/mfc_window_1",
+      "y": 270
+    },
+    "facing=west,number=2": {
+      "model": "mobtalk:block/mfc_window_2",
+      "y": 270
+    },
+    "facing=west,number=3": {
+      "model": "mobtalk:block/mfc_window_3",
+      "y": 270
+    },
+    "facing=west,number=4": {
+      "model": "mobtalk:block/mfc_window_4",
+      "y": 270
+    },
+    "facing=west,number=5": {
+      "model": "mobtalk:block/mfc_window_5",
+      "y": 270
+    },
+    "facing=west,number=6": {
+      "model": "mobtalk:block/mfc_window_6",
+      "y": 270
+    },
+    "facing=west,number=7": {
+      "model": "mobtalk:block/mfc_window_7",
+      "y": 270
+    },
+    "facing=west,number=8": {
+      "model": "mobtalk:block/mfc_window_8",
+      "y": 270
+    },
+    "facing=west,number=9": {
+      "model": "mobtalk:block/mfc_window_9",
+      "y": 270
+    }
+  }
+}

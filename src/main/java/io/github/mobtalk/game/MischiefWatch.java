@@ -1,5 +1,6 @@
 package io.github.mobtalk.game;
 
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.Mischief;
 import io.github.mobtalk.core.MobState;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
@@ -109,7 +110,7 @@ public final class MischiefWatch {
         if (witnesses.isEmpty()) return;
         // A chest, a plot or a door is somebody's only inside a village; a claimed work block or bed speaks for itself.
         if (owner == null && !world.isNearOccupiedPointOfInterest(pos, VILLAGE_SECTIONS)) return;
-        long now = System.currentTimeMillis();
+        long now = MobClock.now();
         if (!ledger.count(player.getUuid(), kind, now)) return;
         String seen = Mischief.seen(kind, detail);
         for (MobEntity witness : witnesses)

@@ -96,3 +96,11 @@ powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 -Only server [
 
 Рядом лежат `server.log`, `client-Test1-latest.log`, `client-Test2-latest.log`, снимки клиентов `mobtalk-server-*.png` и снимки
 окон `window-*.png`. Копии клиентов ищутся только созданные этим прогоном: чужие `t-client-Test1-*` не трогаются.
+
+## Этап `servercards`: игра в 21 вдвоём на выделенном сервере
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 -Only servercards [-Keep]
+```
+
+Тот же сервер-дирижёр и два клиента, что у `-Only server`, но только сцена игры в 21 (`-Dmobtalk.selftest.play.only=cards`, docs/cards-21.md): оба садятся за стол одного жителя (места 0 и 1), «Раздать» ждёт, пока готовы все сидящие, чужой ход отклоняется («Не ваш ход»), ход переходит слева направо, расчёт приходит обоим, изумруды только переходят между игроками и банком; новичок садится посреди раунда без карт и играет со следующей раздачи; при одном месте второй смотрит, видит раздачу и садится, когда место освободилось. Около 3 минут, без вызовов модели, кроме реплик жителя за столом. Снимки клиентов `mobtalk-server-cards-*.png`.

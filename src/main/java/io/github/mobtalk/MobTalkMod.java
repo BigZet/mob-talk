@@ -111,6 +111,18 @@ public final class MobTalkMod implements ModInitializer {
 
     @Override public void onInitialize() {
         WeddingItems.register(); // Свои предметы — до загрузки любого мира, на обеих сторонах.
+        io.github.mobtalk.game.DefenseContent.register(); // Пост лучника и профессия лучника (защита деревни).
+        io.github.mobtalk.game.RoadCartEntity.register(); // Повозки на дорогах между деревнями.
+        io.github.mobtalk.game.RoadContent.register(); // Мелочи у дорог: камушки, пирамидки, верстовые столбы, поваленные брёвна.
+        io.github.mobtalk.game.OfficialContent.register(); // Казённый стол, чиновники, конверт и справка.
+        io.github.mobtalk.game.BarContent.register(); // Мебель бара и место, на котором сидит житель.
+        io.github.mobtalk.game.MfcContent.register(); // МФЦ «Госуслуги»: мебель зала, талон, сотрудники.
+        io.github.mobtalk.game.BarWorldgen.register(); // Бар в каждой новой деревне.
+        io.github.mobtalk.game.CasinoContent.register(); // Казино: мебель, вышибала, точки интереса (docs/casino.md).
+        io.github.mobtalk.game.CasinoWorldgen.register();
+        io.github.mobtalk.game.CasinoResort.register();
+        io.github.mobtalk.game.CasinoLife.register();
+        io.github.mobtalk.game.CardTables.register(); // Игра в 21: колода карт, удары по жителю, /mobtalk cards.
         MobGameBridge.initialize();
         MobTalkNet.registerPayloads();
         if (dedicated()) {
@@ -129,15 +141,17 @@ public final class MobTalkMod implements ModInitializer {
         VoiceServices.install(); // Трек B: распознавание и озвучка на сервере вместо заглушек.
         ServerLifecycleEvents.SERVER_STARTED.register(MobTalkMod::started);
         ServerLifecycleEvents.SERVER_STOPPING.register(MobTalkMod::stopping);
-        ServerTickEvents.END_SERVER_TICK.register(server -> { DialogueService service = dialogue; if (service != null && server == current) service.tick(); });
+        ServerTickEvents.END_SERVER_TICK.register(server -> { DialogueService service = dialogue; if (service != null && server == current) service.tick(); io.github.mobtalk.game.CardTables.tick(server); });
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
             sendFeatures(handler.getPlayer());
             DialogueService service = dialogue;
             if (service != null) service.join(handler.getPlayer().getUuid(), handler.getPlayer().getGameProfile().getName());
+            io.github.mobtalk.game.CardTables.join(handler.getPlayer());
         });
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             DialogueService service = dialogue;
             if (service != null) service.leave(handler.getPlayer().getUuid());
+            io.github.mobtalk.game.CardTables.leave(handler.getPlayer());
             PlayerSettingsStore.flush();
         });
         registerReceivers();
@@ -164,6 +178,7 @@ public final class MobTalkMod implements ModInitializer {
                     try {
                         MobGameBridge bridge = MobGameBridge.attach(server, memory, ServerConfig.get());
                         dialogue = openDialogue(server, bridge, directory);
+                        io.github.mobtalk.game.CardTables.started(server, memory);
                         if (dedicated()) AdminLink.start(server, bridge, dialogue); // Трек W: веб-админка на выделенном сервере.
                         for (ServerPlayerEntity player : server.getPlayerManager().getPlayerList()) {
                             dialogue.join(player.getUuid(), player.getGameProfile().getName());
@@ -204,6 +219,7 @@ public final class MobTalkMod implements ModInitializer {
         bridgeReady = new CompletableFuture<>();
         ready.completeExceptionally(new IllegalStateException("Сервер остановлен"));
         AdminLink.stop();
+        io.github.mobtalk.game.CardTables.stopping(server);
         DialogueService service = dialogue;
         dialogue = null;
         if (service != null) service.close();
@@ -262,6 +278,7 @@ public final class MobTalkMod implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(TalkCancelC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.cancel(context.player().getUuid(), payload.reason())));
         ServerPlayNetworking.registerGlobalReceiver(GiftC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.gift(context.player().getUuid(), payload.mobId())));
         ServerPlayNetworking.registerGlobalReceiver(MobActionC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.action(context.player().getUuid(), payload.mobId(), payload.intentJson())));
+        ServerPlayNetworking.registerGlobalReceiver(io.github.mobtalk.net.CardTableActionC2S.ID, (payload, context) -> io.github.mobtalk.game.CardTables.action(context.player(), payload));
         ServerPlayNetworking.registerGlobalReceiver(ScreenRequestC2S.ID, (payload, context) -> withDialogue(context.player(), s -> s.screen(context.player().getUuid(), payload.screen(), payload.mobId())));
         ServerPlayNetworking.registerGlobalReceiver(PlayerSettingsC2S.ID, (payload, context) -> {
             PlayerSettingsStore.put(context.player().getUuid(), PlayerSettings.fromJson(payload.json()));
