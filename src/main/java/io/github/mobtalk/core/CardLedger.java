@@ -53,6 +53,15 @@ public final class CardLedger {
             if (history == null) history = new ArrayList<>();
             history.removeIf(Objects::isNull);
             while (history.size() > HISTORY) history.removeFirst();
+            // Приглашения, игры на интерес и скидки нужны только несколько дней: остальное выкидываем, иначе карты растут вечно.
+            long newest = 0;
+            for (Integer day : invited.values()) if (day != null) newest = Math.max(newest, day);
+            for (Day d : interest.values()) if (d != null) newest = Math.max(newest, d.day);
+            for (Integer day : discounts.values()) if (day != null) newest = Math.max(newest, day);
+            final long keep = newest - 7;
+            invited.entrySet().removeIf(e -> e.getValue() == null || e.getValue() < keep);
+            interest.entrySet().removeIf(e -> e.getValue() == null || e.getValue().day < keep);
+            discounts.entrySet().removeIf(e -> e.getValue() == null || e.getValue() < keep);
         }
         Book copy() {
             Book c = new Book();
@@ -159,21 +168,21 @@ public final class CardLedger {
     public int recover() {
         synchronized (store) {
             Book book = book();
-            int players = 0;
+            java.util.Set<String> players = new java.util.LinkedHashSet<>();
             for (Map.Entry<String, Integer> e : book.stakes.entrySet()) {
                 if (e.getValue() <= 0) continue;
                 book.owed.merge(e.getKey(), e.getValue(), Integer::sum);
-                players++;
+                players.add(e.getKey());
             }
             book.stakes.clear();
             for (Map.Entry<String, List<ItemStake>> e : book.items.entrySet()) {
                 if (e.getValue().isEmpty()) continue;
                 book.owedItems.computeIfAbsent(e.getKey(), k -> new ArrayList<>()).addAll(e.getValue());
-                players++;
+                players.add(e.getKey());
             }
             book.items.clear();
-            if (players > 0) store.scheduleSave();
-            return players;
+            if (!players.isEmpty()) store.scheduleSave();
+            return players.size();
         }
     }
 
@@ -286,7 +295,7 @@ public final class CardLedger {
         synchronized (store) {
             int sum = 0;
             for (Session s : book().history)
-                if (now - s.time() < 20 * 60_000L && s.villager().equals(villager.toString()) && s.player().equals(player.toString())) sum += s.net();
+                if (now - s.time() < 24 * 60 * 60_000L && s.villager().equals(villager.toString()) && s.player().equals(player.toString())) sum += s.net();
             return Math.max(0, sum);
         }
     }

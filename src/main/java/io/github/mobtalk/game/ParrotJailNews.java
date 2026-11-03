@@ -2,6 +2,7 @@ package io.github.mobtalk.game;
 
 import io.github.mobtalk.MobTalkMod;
 import io.github.mobtalk.core.ConversationStore;
+import io.github.mobtalk.core.MobClock;
 import io.github.mobtalk.core.VillageRumors;
 import io.github.mobtalk.server.AdminLink;
 import io.github.mobtalk.server.web.AdminWeb;
@@ -54,7 +55,7 @@ public final class ParrotJailNews {
                 .sorted(java.util.Comparator.comparingDouble(v -> v.squaredDistanceTo(pos.toCenterPos()))).limit(WITNESSES).map(VillagerEntity::getUuid).toList();
         String prefix = "cage-" + parrot + "-";
         bridge.memory.villageNews(village.id(), prefix + (jailed ? "in" : "out"), prefix, jailed ? jailedText(name, minutes) : releasedText(name, reason),
-                3, VillageRumors.DAY_MILLIS, hearers, System.currentTimeMillis());
+                3, VillageRumors.DAY_MILLIS, hearers, MobClock.now());
     }
 
     static String jailedText(String name, int minutes) {

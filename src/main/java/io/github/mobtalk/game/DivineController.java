@@ -141,8 +141,9 @@ final class DivineController {
         List<String> lifted = bridge.memory.divineSettle(deed, cursed, now);
         if (world != null) for (String id : lifted) {
             ConversationStore.Village village = bridge.memory.village(id);
-            if (village != null && village.dimension().equals(deed.dimension()))
-                shout(world, villagers(world, village, center(world, village), 48).stream().findFirst().orElse(null), "Слава Богу, миновало!");
+            // Only in a loaded chunk: the village is known from memory, and reading the height there would generate a chunk mid-tick.
+            if (village == null || !village.dimension().equals(deed.dimension()) || !world.isChunkLoaded(new BlockPos(village.x(), 64, village.z()))) continue;
+            shout(world, villagers(world, village, center(world, village), 48).stream().findFirst().orElse(null), "Слава Богу, миновало!");
         }
         for (DivineTidings.AssemblyView a : waiting) {
             ConversationStore.Village village = bridge.memory.village(a.village());
@@ -250,7 +251,7 @@ final class DivineController {
         if (crowd.isEmpty()) return;
         String line = line(deed, blamed);
         if (deed.alarm()) {
-            BlockPos bell = bell(world, center(world, r.village()));
+            BlockPos bell = world.isChunkLoaded(new BlockPos(r.village().x(), 64, r.village().z())) ? bell(world, center(world, r.village())) : null;
             if (bell != null) ring(world, bell);
             for (VillagerEntity v : crowd) {
                 if (v.getVillagerData().getProfession() == VillagerProfession.CLERIC && bell != null) {
@@ -324,7 +325,8 @@ final class DivineController {
         long day = world.getTimeOfDay() % 24000, ticks = Math.floorMod(12000 - day, 24000);
         if (ticks < 1200) ticks += 24000; // Too close to sunset: the sinner gets until the next one.
         if (!bridge.memory.divineAssemble(village.id(), soul.id(), soul.name(), now + ticks * 50)) return;
-        BlockPos bell = bell(world, center(world, village));
+        // The bell is looked for only in a loaded chunk: the village may stand far from the deed's player.
+        BlockPos bell = world.isChunkLoaded(new BlockPos(village.x(), 64, village.z())) ? bell(world, center(world, village)) : null;
         if (bell != null) ring(world, bell);
         tell(village, soul.id(), Text.translatable("mobtalk.divine.assembly", village.name(), soul.name()));
         bridge.memory.divineAnnounced(village.id(), soul.id());

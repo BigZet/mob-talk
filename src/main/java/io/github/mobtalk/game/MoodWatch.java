@@ -51,6 +51,9 @@ final class MoodWatch {
     private final Set<UUID> bedridden = new HashSet<>();
     MoodWatch(MobGameBridge bridge) { this.bridge = bridge; }
 
+    /** The world is closing: no villager stays bedridden into the next one. */
+    void clearRuntime() { bedridden.clear(); }
+
     void tick(ServerWorld world) {
         if (!bridge.config.enabled || world.getTime() % PERIOD != PHASE || world.getPlayers().isEmpty()) return;
         long now = MobClock.now();

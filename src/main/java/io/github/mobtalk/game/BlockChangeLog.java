@@ -112,4 +112,7 @@ final class BlockChangeLog {
     }
 
     void forget(UUID mob) { pending.remove(mob); enclosed.remove(mob); }
+
+    /** The world is closing: no change is carried into the next one. */
+    synchronized void clearRuntime() { changes.clear(); pending.clear(); enclosed.clear(); }
 }
