@@ -7,12 +7,12 @@
 ## Как запускать
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices] [-ShotEverySeconds 60] [-Keep] [-MaxGames 3]
+powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 [-Only wedding|family|place|names|voices] [-ShotEverySeconds 60] [-Keep] [-MaxGames 6]
 ```
 
 1. Влейте в свою ветку main (там `scripts\ParallelPrism.psm1` и новый `run-selftest.ps1`). Старый скрипт
    закрывает Prism и правит основной инстанс, а это ломает чужие прогоны: не запускайте его.
-2. Скрипт собирает вашу ветку, ждёт свободный слот (не больше 3 игр на машине, считая и игры пользователя),
+2. Скрипт собирает вашу ветку, ждёт свободный слот (не больше 6 игр на машине, считая и игры пользователя),
    копирует базовый инстанс в `%APPDATA%\PrismLauncher\instances\t-mt-<ветка>-<время>-<nn>` с JAR вашей ветки
    и копией мира `stream 1`, запускает его через уже открытый Prism и ждёт только свой `javaw`.
 3. После выхода игры копия удаляется. Логи, `latest.log` и снимки лежат в

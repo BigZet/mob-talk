@@ -1,5 +1,14 @@
 # Передача Mob Talk новой сессии (20 октября 2026)
 
+> **Статус на 3 ноября 2026.** Целевое направление — серверный мод для игры с друзьями (сервер на ПК
+> Дмитрия или внешний). Ветки почищены и консолидированы: остались `main`, `bigzet/city` (носитель
+> кластера городов) и `claude/police-tts-handoff` (милия, вольётся в `main` сразу за городами).
+> Бандиты (PR #10) и меркантильные горожанки (PR #9) влиты в `main` и «спят» до городов: код есть,
+> структур `mobtalk:city_*` в `main` нет, в пак не включать. 721 тест, зелёные. Свежая картина:
+> docs/mods-status.md (зависимости), docs/agents/branch-registry.md (ветки), docs/agents/coordination.md
+> (правила), docs/audit-2026-11-03.md (полная ревизия). Разделы ниже — от 20–26 октября, частично
+> исторические.
+
 Этот документ нужен, чтобы новая сессия Claude Code продолжила работу без потерь. Он дополняет
 AGENTS.md (правила), README.md (что умеет мод), docs/design.md (устройство),
 docs/playtest-0.6.0-checklist.md (что проверять в игре и дорожная карта),
@@ -8,12 +17,14 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 
 ## 1. Где что лежит
 
-- Репозиторий: `C:\Users\bigze\Documents\GH\mob-talk`, ветка `main`, коммиты прямо в main
-  (без веток под задачи), ничего не запушено на GitHub (BigZet/mob-talk).
-  Последний коммит на момент передачи: `ca4163c` + эта передача.
+- Репозиторий: `C:\Users\bigze\Documents\GH\mob-talk`, ветка `main`. Работа — в своей ветке и worktree на
+  задачу, слияние в `main` только через PR (правила и карта веток: docs/agents/coordination.md,
+  docs/agents/branch-registry.md). Репозиторий на GitHub (BigZet/mob-talk), локальный `main` синхронизирован
+  с `origin/main`.
 - Соседний проект `C:\Users\bigze\Documents\GH\minecraft-parrot` не трогать (это другой мод).
 - Исходники MCA Reborn (GPL-3.0, только для сверки, не запускать): `C:\Users\bigze\Documents\GH\_reference\minecraft-comes-alive`.
-- Prism: инстанс `%APPDATA%\PrismLauncher\instances\1.21.1-fabric-dev`, мод в `minecraft\mods\mobtalk-0.7.0.jar`,
+- Prism: инстанс `%APPDATA%\PrismLauncher\instances\1.21.1-fabric-dev`, мод в `minecraft\mods\` — текущий jar
+  (версия в `gradle.properties`, сейчас 0.7.2),
   конфиг `minecraft\config\mobtalk.json`, сохранения `minecraft\saves` (основной мир пользователя: `stream 1`).
 - Секреты только в DPAPI: `%LOCALAPPDATA%\MobTalk\openrouter-key.dpapi`, `venice-key.dpapi`
   (SecureString, читаются через `OpenRouterToken.load`). В git, логи, конфиг и JAR не попадают.
@@ -29,7 +40,7 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 ## 2. Как собирать, тестировать и ставить
 
 - Порядок тестирования доработок (3 уровня: доработка, мод, сборка; модели): docs/testing-strategy.md.
-- Сборка и тесты: `.\gradlew.bat test build` (Windows PowerShell), сейчас 313 тестов, 2 живых пропускаются
+- Сборка и тесты: `.\gradlew.bat test build` (Windows PowerShell), 721 тест (3 ноября 2026), 2 живых пропускаются
   без `MOBTALK_LIVE=1`.
 - Установка в Prism только при закрытой игре (нет процесса `javaw.exe`):
   `powershell -ExecutionPolicy Bypass -File scripts\install-prism.ps1 -Instance '1.21.1-fabric-dev'`.
@@ -96,7 +107,7 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 
 24 октября: оверлей для OBS (docs/overlay.md): страница на клиенте стримера `127.0.0.1:8790/overlay/`, пакет `overlay_state` с сервера, настройки F7 «Оверлей для стрима», права в F9. Божественный блок отдаёт состояние операцией `overlay` (ветка divine-block `bigzet/overlay`), со старой версией работает запасной путь. В игре глазами не проверено.
 
-### Игра в 21 с жителем (из ветки `claude/project-thread-426kyh`, в main отдельно от казино)
+### Игра в 21 с жителем (в `main`; казино тоже слито в `main`)
 
 Дизайн и этапы в docs/cards-21.md. Правила (очко и блэкджек) без MC в `core/cards`, учёт в `core/CardLedger`
 (кошельки жителей, залоги, долги, история сессий, интерес, скидки, слухи о шулере), стол на сервере в
@@ -177,13 +188,13 @@ docs/space-analysis.md (зрение и классификатор), docs/whispe
 
 ## 6. Рабочие правила сессии (из памяти Claude Code)
 
-- Коммиты прямо в main на русском, в конце `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`
-  (агенты на Opus подписывают `Claude Opus 5.5`). Не пушить без просьбы.
-- Параллельная разработка: каждая фича в своём git worktree `mob-talk/.claude/worktrees/<trek>` на ветке
-  `bigzet/<trek>`; интегратор сливает по одной (`git merge --no-ff`), конфликты в общих файлах решает
-  объединением обеих сторон, после каждого слияния тесты, в конце сборка, установка при закрытой игре
-  и самотест. В брифах: новая логика в новых классах, в общих файлах короткие точки подключения,
-  в Prism не ставить, игру не запускать, не пушить.
+> Актуально: правила параллельной работы нескольких агентов — **docs/agents/coordination.md** (своя ветка
+> `<агент>/<задача>` в своём worktree, слияние в `main` только через PR, конфликты в общих файлах —
+> объединением обеих сторон, после каждого слияния тесты). Пункт ниже — исторический (октябрьская схема
+> `.claude/worktrees` больше не используется).
+
+- Коммиты на русском, в конце подпись агента (например `Co-Authored-By: Claude Fable 5.1 <noreply@anthropic.com>`
+  или `Co-Authored-By: GLM (opencode)`). Пуш и релизы — только по просьбе Дмитрия.
 - Если `start_session` отвечает «turn runs an automated event» (случалось весь вечер 19 октября),
   запускать работу через `Agent` (subagent, model opus, run_in_background); агент сам делает
   `git worktree add`. Уведомления о завершении сессий могут не прийти: проверять `git log main..<ветка>`.

@@ -1,6 +1,8 @@
 # Ночные бандиты в городах
 
-Ночью в городе с панельками (структуры `mobtalk:city_*`, ветка городов) к игроку может выйти банда. Код: `game/BanditEntity`,
+Ночью в городе с панельками (структуры `mobtalk:city_*`) к игроку может выйти банда. **Статус: код влита в
+`main` (PR #10) и «спит» — в `main` нет структур `mobtalk:city_*`, они появятся из ветки городов
+`bigzet/city`; до её слияния банда не появляется.** Код: `game/BanditEntity`,
 `game/BanditController`, `game/BanditContent`, клиент `client/bandit/BanditRenderer`, скины `tools/bandits/skins.py`.
 
 ## Как это играется
