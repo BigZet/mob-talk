@@ -24,7 +24,13 @@ public final class SeraphMind {
     public static final double STEER_ACC = 0.06, STEER_CAP = 0.16, LIFT = 2.0;
     /** The wing dash eases in and out: blocks per tick over its ticks, about 8.5 blocks in all. */
     public static final double[] DASH_PROFILE = {0.7, 1.3, 1.6, 1.6, 1.4, 1.0, 0.6, 0.3};
-    public static final int DASH_TICKS = DASH_PROFILE.length, DASH_CD = 60;
+    public static final int DASH_TICKS = DASH_PROFILE.length, DASH_CD = 45;
+    /** v4: the small sidestep, ~2.4 blocks in 4 ticks, ready again in 18. */
+    public static final double[] MINI_PROFILE = {0.5, 0.8, 0.7, 0.4};
+    public static final int MINI_TICKS = MINI_PROFILE.length, MINI_CD = 18;
+    /** v4: how soon the circling may turn the other way; how near and far it circles; the teleport behind the foe. */
+    public static final int FLIP_CD = 40, TELE_WARN = 10, TELE_CD = 180;
+    public static final double RADIUS_MIN = 6, RADIUS_MAX = 18;
     /** Steering and height follow the net smoothly: each tick moves this much of the way back to the old value. */
     public static final double SMOOTH = 0.75;
     public static final int DEFLECT_WIND = 3, DEFLECT_ACTIVE = 6, DEFLECT_CD = 80;
@@ -34,7 +40,7 @@ public final class SeraphMind {
      * player can read. Not in the trainer's training rules (duel.py --recover mirrors it); the net simply finds the move refused. */
     public static final int RECOVER = 20;
     static final double WALK = 0.2158, EYE = 1.62;
-    static final int T = 16, REACT = 2, P = 8, ITEM = 11, TOK = 23;
+    static final int T = 16, REACT = 2, P = 8, ITEM = 11, TOK = 27, ACT = 12;
 
     private static SeraphBrain brain;
     private static boolean tried;
@@ -44,7 +50,10 @@ public final class SeraphMind {
     private int filled;
     private Vec3d lastFoe;
     private int dashCd, dashLeft, deflectCd, deflectT, attackCd = 30, foeCool, noDash, noDeflect;
-    private Vec3d dashDir = Vec3d.ZERO;
+    private int miniLeft, miniCd, flipCd, teleCd;
+    private Vec3d dashDir = Vec3d.ZERO, miniDir = Vec3d.ZERO;
+    private double orbitDir = Math.random() < 0.5 ? -1 : 1, radius = ORBIT;
+    private boolean miniStarted, flipped, teleStarted;
     private double steerX, steerZ, liftS;
     private boolean wasUsing, released, dashStarted;
     private float[] lastOut = new float[0], lastToken = new float[TOK];
@@ -53,13 +62,14 @@ public final class SeraphMind {
 
     /** One tick's decision. Steering is world-space in [-1, 1]; aimSide/aimUp are the feathers' lead in [-1, 1]. */
     public record Move(double steerX, double steerZ, double steerAmount, double lift, boolean dashing, Vec3d dashDir, double dashSpeed,
-                       boolean startDeflect, boolean startFeathers, double aimSide, double aimUp, float shotSoon) { }
+                       boolean startDeflect, boolean startFeathers, double aimSide, double aimUp, float shotSoon,
+                       boolean mini, double orbitDir, double radius, boolean startTeleport) { }
 
     public static synchronized SeraphBrain brain() {
         if (!tried) {
             tried = true;
             brain = SeraphBrain.load("/assets/divineblock/ai/seraph_brain.bin");
-            if (brain != null && (brain.tokDim != TOK || brain.itemDim != ITEM || brain.act != 8 || brain.T != T)) brain = null;
+            if (brain != null && (brain.tokDim != TOK || brain.itemDim != ITEM || brain.act != ACT || brain.T != T)) brain = null;
         }
         return brain;
     }
@@ -80,6 +90,13 @@ public final class SeraphMind {
     public int dashCd() { return dashCd; }
     public int deflectCd() { return deflectCd; }
     public int attackCd() { return attackCd; }
+    /** v4, for the fight log: a sidestep, a turn of the circling or a teleport began this tick; the circling now. */
+    public boolean miniStarted() { return miniStarted; }
+    public boolean flipped() { return flipped; }
+    public boolean teleStarted() { return teleStarted; }
+    public boolean sidestepping() { return miniLeft > 0; }
+    public double orbitDir() { return orbitDir; }
+    public double radius() { return radius; }
 
     /** Call every server tick while it fights, casting or not (the memory must not skip ticks).
      * {@code castProgress} 0..1 while a cast runs, else -1. Returns null when there is no net. */
@@ -103,7 +120,7 @@ public final class SeraphMind {
         lastItems = items(self, c, s);
         push(lastToken, lastItems);
         boolean casting = castProgress >= 0;
-        if (stunned) { dashLeft = 0; deflectT = 0; }
+        if (stunned) { dashLeft = 0; deflectT = 0; miniLeft = 0; }
 
         float[] out = b.forward(java.util.Arrays.copyOfRange(tokens, 0, T), items[0]);
         lastOut = out;
@@ -113,11 +130,11 @@ public final class SeraphMind {
         steerX = SMOOTH * steerX + (1 - SMOOTH) * wx;
         steerZ = SMOOTH * steerZ + (1 - SMOOTH) * wz;
         liftS = SMOOTH * liftS + (1 - SMOOTH) * ay;
-        boolean deflect = out[4] > 0 && deflectCd == 0 && !casting && dashLeft == 0;
+        boolean deflect = out[4] > 0 && deflectCd == 0 && !casting && dashLeft == 0 && miniLeft == 0;
         if (deflect && (stunned || noDeflect > 0)) { no.append(stunned ? "deflect:stun " : "deflect:recover "); deflect = false; }
         if (deflect && mastery < 1 && self.getRandom().nextDouble() >= mastery) { deflectCd = DEFLECT_CD / 2; deflect = false; no.append("deflect:skill "); }
         if (deflect) { deflectT = DEFLECT_WIND + DEFLECT_ACTIVE; deflectCd = DEFLECT_CD; noDash = deflectT + RECOVER; }
-        boolean dash = out[3] > 0 && dashCd == 0 && !casting && deflectT == 0;
+        boolean dash = out[3] > 0 && dashCd == 0 && !casting && deflectT == 0 && miniLeft == 0;
         if (dash && (stunned || noDash > 0)) { no.append(stunned ? "dash:stun " : "dash:recover "); dash = false; }
         if (dash && mastery < 1 && self.getRandom().nextDouble() >= mastery) { dashCd = DASH_CD / 2; dash = false; no.append("dash:skill "); }
         dashStarted = dash;
@@ -126,18 +143,41 @@ public final class SeraphMind {
             dashDir = len < 1e-6 ? Vec3d.ZERO : new Vec3d(wx / len, 0, wz / len);
             dashLeft = DASH_TICKS; dashCd = DASH_CD; noDeflect = DASH_TICKS + RECOVER;
         }
-        boolean feathers = out[5] > 0 && attackCd == 0 && !casting && dashLeft == 0;
+        // v4 manoeuvres (duel.py Duel._maneuvers): the sidestep, the turn of the circling, its radius, the teleport behind
+        boolean free = !casting && !stunned && dashLeft == 0 && deflectT == 0;
+        boolean mini = out[8] > 0 && miniCd == 0 && free && miniLeft == 0 && !dash;
+        if (mini && noDash > 0) { no.append("mini:recover "); mini = false; }
+        if (mini && mastery < 1 && self.getRandom().nextDouble() >= mastery) { miniCd = MINI_CD / 2; mini = false; no.append("mini:skill "); }
+        miniStarted = mini;
+        if (mini) {
+            double len = Math.hypot(wx, wz);
+            // with almost no steering: straight aside from the line to the foe, to the side the net leans
+            double side = out[2] >= 0 ? 1 : -1;
+            miniDir = len < 0.2 ? new Vec3d(-side * s, 0, side * c) : new Vec3d(wx / len, 0, wz / len);
+            miniLeft = MINI_TICKS; miniCd = MINI_CD;
+        }
+        double want = out[9] > 0.5 ? 1 : out[9] < -0.5 ? -1 : orbitDir;
+        flipped = want != orbitDir && flipCd == 0 && !casting && !stunned;
+        if (flipped) { orbitDir = -orbitDir; flipCd = FLIP_CD; }
+        if (!casting && !stunned) radius = 0.95 * radius + 0.05 * MathHelper.clamp(12 + 6 * clamp(out[10]), RADIUS_MIN, RADIUS_MAX);
+        teleStarted = out[11] > 0 && teleCd == 0 && free && miniLeft == 0 && !mini && !dash;
+        if (teleStarted) teleCd = TELE_CD;
+        boolean feathers = out[5] > 0 && attackCd == 0 && !casting && !teleStarted && dashLeft == 0 && miniLeft == 0;
         if (feathers && stunned) { no.append("feathers:stun "); feathers = false; }
         refused = no.toString().trim();
-        boolean dashingNow = dashLeft > 0;
-        double dashSpeed = dashingNow ? DASH_PROFILE[Math.min(DASH_TICKS - dashLeft, DASH_TICKS - 1)] : 0;
+        boolean dashingNow = dashLeft > 0, sidestep = !dashingNow && miniLeft > 0;
+        double dashSpeed = dashingNow ? DASH_PROFILE[Math.min(DASH_TICKS - dashLeft, DASH_TICKS - 1)]
+                : sidestep ? MINI_PROFILE[Math.min(MINI_TICKS - miniLeft, MINI_TICKS - 1)] : 0;
+        Vec3d moveDir = sidestep ? miniDir : dashDir;
         dashLeft = Math.max(dashLeft - 1, 0); dashCd = Math.max(dashCd - 1, 0);
+        miniLeft = Math.max(miniLeft - 1, 0); miniCd = Math.max(miniCd - 1, 0);
+        flipCd = Math.max(flipCd - 1, 0); teleCd = Math.max(teleCd - 1, 0);
         deflectT = Math.max(deflectT - 1, 0); deflectCd = Math.max(deflectCd - 1, 0);
         attackCd = Math.max(attackCd - 1, 0); foeCool = Math.max(foeCool - 1, 0);
         noDash = Math.max(noDash - 1, 0); noDeflect = Math.max(noDeflect - 1, 0);
-        float soon = (float) (1 / (1 + Math.exp(-out[8])));
-        return new Move(steerX, steerZ, Math.min(1, Math.hypot(steerX, steerZ)), casting || stunned ? 0 : liftS, dashingNow, dashDir, dashSpeed, deflect, feathers,
-                clamp(out[6]), clamp(out[7]), soon);
+        float soon = (float) (1 / (1 + Math.exp(-out[ACT])));
+        return new Move(steerX, steerZ, Math.min(1, Math.hypot(steerX, steerZ)), casting || stunned ? 0 : liftS, dashingNow || sidestep, moveDir,
+                dashSpeed, deflect, feathers, clamp(out[6]), clamp(out[7]), soon, sidestep, orbitDir, radius, teleStarted);
     }
 
     /** The feathers flew: the next volley waits. */
@@ -180,6 +220,10 @@ public final class SeraphMind {
         o[i++] = (float) (Math.acos(MathHelper.clamp(look.dotProduct(toB), -1, 1)) / 0.5);
         o[i++] = foeCool > 0 ? 1 : 0;
         o[i++] = dashLeft > 0 ? 1 : 0;
+        o[i++] = (float) (1 - miniCd / (double) MINI_CD);
+        o[i++] = miniLeft > 0 ? 1 : 0;
+        o[i++] = (float) (1 - teleCd / (double) TELE_CD);
+        o[i++] = (float) orbitDir;
         return o;
     }
 

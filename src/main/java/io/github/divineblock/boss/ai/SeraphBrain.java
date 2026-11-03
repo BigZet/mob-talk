@@ -12,7 +12,8 @@ import java.util.Map;
  * the air, and heads for the action and the predictions. Mirrors {@code ml/seraph_dodge/v2/model.py} operation for
  * operation; weights come from {@code export.py}. About 0.6 M multiply-adds a decision. */
 public final class SeraphBrain {
-    private static final int MAGIC = 0x32465253;
+    /** 'SRF2' (v2/v3: 23 features, 8 actions) and 'SRF3' (v4: 27, 12); the sizes themselves come from the tensors. */
+    private static final int MAGIC = 0x32465253, MAGIC_V4 = 0x33465253;
     private final Map<String, float[]> w = new HashMap<>();
     private final Map<String, int[]> shape = new HashMap<>();
     final int d, layers, heads = 4, T, tokDim, itemDim, act, aux;
@@ -41,7 +42,8 @@ public final class SeraphBrain {
         try (InputStream in = SeraphBrain.class.getResourceAsStream(resource)) {
             if (in == null) return null;
             ByteBuffer buf = ByteBuffer.wrap(in.readAllBytes()).order(ByteOrder.LITTLE_ENDIAN);
-            if (buf.getInt() != MAGIC) return null;
+            int magic = buf.getInt();
+            if (magic != MAGIC && magic != MAGIC_V4) return null;
             return new SeraphBrain(buf);
         } catch (IOException | RuntimeException failure) {
             return null;

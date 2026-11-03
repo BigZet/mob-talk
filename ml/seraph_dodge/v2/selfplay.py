@@ -3,6 +3,8 @@
 python selfplay.py --envs 1024 --updates 3000 --device cuda --out runs/sp1      # на 3080
 python selfplay.py --envs 128 --updates 20 --out runs/smoke                     # проверка на CPU
 python selfplay.py --v3 --resume runs/sp1_u1150.pt --envs 1024 --updates 700 --device cuda --out runs/sp3 --keep 50
+python selfplay.py --v4 --resume runs/sp3/duel_u500.pt --envs 1024 --updates 800 --device cuda --out runs/sp4 --keep 50
+    # v4: манёвры; веса v3 расширяются (widen): новые входы и выходы с нуля
     # v3: бой как в моде, сценарные лучники — люди (--human-frac), группы 40/40/20, снимок duel_uN.pt каждые 50 обновлений
 
 Группы арен в каждом сборе опыта:
@@ -32,6 +34,26 @@ SOON, AHEAD = 4, 10
 
 def make(kind):
     return AgentNet(S_TOK if kind == "s" else A_TOK, ITEM_F, S_ACT if kind == "s" else A_ACT, AUX, T)
+
+
+# новые выходы v4 (мини, сторона, радиус, телепорт): с чего начинает mu — триггеры чуть ниже нуля, чтобы пробовать, но не всё время
+NEW_MU_BIAS = (-0.5, 0.0, 0.0, -1.0)
+
+
+def widen(sd):
+    """Веса Серафима v2/v3 (23 признака, 8 действий) под v4 (27, 12): новые столбцы входа и строки выхода — нули,
+    поэтому сеть до обучения ведёт себя как прежняя, а новые действия стоят на NEW_MU_BIAS."""
+    sd = dict(sd)
+    w = sd["emb.weight"]
+    if w.shape[1] < S_TOK:
+        sd["emb.weight"] = torch.cat([w, torch.zeros(w.shape[0], S_TOK - w.shape[1])], 1)
+    w, b, ls = sd["mu.weight"], sd["mu.bias"], sd["log_std"]
+    extra = S_ACT - w.shape[0]
+    if extra > 0:
+        sd["mu.weight"] = torch.cat([w, torch.zeros(extra, w.shape[1])], 0)
+        sd["mu.bias"] = torch.cat([b, torch.tensor(NEW_MU_BIAS[-extra:], dtype=b.dtype)])
+        sd["log_std"] = torch.cat([ls, torch.full((extra,), -0.5)])
+    return sd
 
 
 class Buffer:
@@ -122,6 +144,7 @@ def main():
     ap.add_argument("--resume", default=None)
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--v3", action="store_true", help="бой как в моде (duel.py v3)")
+    ap.add_argument("--v4", action="store_true", help="v3 и манёвры v4: мини-уклонение, сторона и радиус облёта, телепорт")
     ap.add_argument("--human-frac", type=float, default=0.75, help="v3: доля сценарных лучников-людей среди сценарных")
     ap.add_argument("--keep", type=int, default=0, help="каждые столько обновлений сохранять duel_uN.pt")
     a = ap.parse_args()
@@ -131,11 +154,12 @@ def main():
     if a.device == "cpu":
         torch.set_num_threads(max(1, os.cpu_count() - 1))
     n, S = a.envs, a.steps
-    env = Duel(n, seed=a.seed, v3=a.v3, human_frac=a.human_frac if a.v3 else 0.0)
+    a.v3 = a.v3 or a.v4
+    env = Duel(n, seed=a.seed, v3=a.v3, human_frac=a.human_frac if a.v3 else 0.0, v4=a.v4)
     env.roles_fixed = a.v3
     sn, an = make("s").to(dev), make("a").to(dev)
     if a.resume:
-        ck = torch.load(a.resume, map_location=dev); sn.load_state_dict(ck["s"]); an.load_state_dict(ck["a"])
+        ck = torch.load(a.resume, map_location="cpu"); sn.load_state_dict(widen(ck["s"])); an.load_state_dict(ck["a"])
     so, ao = torch.optim.Adam(sn.parameters(), lr=a.lr), torch.optim.Adam(an.parameters(), lr=a.lr)
     pool_s, pool_a = [copy.deepcopy(sn.state_dict())], [copy.deepcopy(an.state_dict())]
     old_s, old_a = make("s").to(dev).eval(), make("a").to(dev).eval()
@@ -198,7 +222,7 @@ def main():
                     out[f"{gg}_feather_hit_per_volley"] = round(d["feather_hits"] / d["volleys"], 3)
                 out[f"{gg}_reflects"] = d.get("reflects", 0); out[f"{gg}_reflect_hits"] = d.get("reflect_hits", 0)
                 if a.v3:
-                    for key in ("windows", "snow_hits", "ring_hits", "pillar_hits", "descents"):
+                    for key in ("windows", "snow_hits", "ring_hits", "pillar_hits", "descents", "dashes", "minis", "flips", "teleports"):
                         out[f"{gg}_{key}"] = d.get(key, 0)
             ep_stats = {}
         log.write(json.dumps(out) + "\n"); log.flush()
