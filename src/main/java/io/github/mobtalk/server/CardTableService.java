@@ -475,7 +475,8 @@ public final class CardTableService {
     private String askDiscount(Table table, int seat, UUID player) {
         if (table.game.phase() != CardTable.Phase.BETTING) return "Ставки уже сделаны: ждите следующей раздачи";
         Extras x = table.extras[seat];
-        if (x.discount > 0 || x.interest) return null;
+        if (x.discount > 0) return table.last.name() + ": «Скидка уже на кону»";
+        if (x.interest) return table.last.name() + ": «Сначала доиграйте на интерес»";
         if (!cfg().cardsItemStakes) return "Ставки сделками на сервере выключены";
         if (memory.relationship(table.villager, player) < CardLedger.DISCOUNT_RELATION) return table.last.name() + ": «Скидку? Мы не настолько знакомы»";
         if (!ledger().discountToday(table.villager, player, world.day())) return table.last.name() + ": «Скидку я сегодня уже ставил»";
@@ -491,6 +492,22 @@ public final class CardTableService {
             else for (CardLedger.ItemStake item : items) world.giveItem(player, item.item(), item.count());
         }
         x.clear();
+    }
+
+    /** Раздача прошла мимо места, не набравшего минимума ставки (сеттлмента на него нет): предметы возвращаются в руки, услуга
+     * и скидка уходят со стола — сама раздача их не разыграла, и до следующей они доживать не должны. Виртуальная часть ставки
+     * снимается в никуда (изумрудов за неё никто не платил), изумрудная часть остаётcя ждать, как и без услуг. */
+    private void sweepUnstaked(Table table) {
+        for (int seat = 0; seat < table.seats.length; seat++) {
+            UUID player = table.seats[seat];
+            Extras x = table.extras[seat];
+            if (player == null || !x.any()) continue;
+            boolean played = false;
+            for (CardTable.Settlement s : table.game.settlements()) if (s.seat() == seat) played = true;
+            if (played) continue;
+            table.game.unbet(seat, x.virtual());
+            releaseExtras(table, seat, player, true, false);
+        }
     }
 
     /** «Раздать»: раздача, когда готовы все, кто поставил; иначе остальным ещё {@link #DEAL_WAIT_MILLIS}. */
@@ -567,6 +584,7 @@ public final class CardTableService {
         if (seat < 0) return null;
         if (table.game.staked(seat) > 0) return "Сначала доиграйте раздачу или заберите ставку";
         table.game.leave(seat, true);
+        releaseExtras(table, seat, player, true, false); // пустое место не уносит скидку следующему, кто сядет
         unseat(table, seat, "смотрит");
         table.watchers.add(player);
         return null;
@@ -670,6 +688,7 @@ public final class CardTableService {
                 changed = true;
             } else if (game.phase() == CardTable.Phase.SETTLED && now >= table.catchUntil) {
                 game.nextRound();
+                sweepUnstaked(table); // места без сданных рук: услуги и предметы со стола
                 changed = true;
                 if (game.purse() < game.limits().minBet()) {
                     UUID someone = table.players().isEmpty() ? null : table.players().getFirst();
