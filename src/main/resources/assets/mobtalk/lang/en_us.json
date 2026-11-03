@@ -1065,6 +1065,8 @@
   "mobtalk.tune.heavyDamage.tooltip": "The damage of a heavy warrior's blow. It strikes less often than a guard.",
   "entity.mobtalk.bandit": "Bandit",
   "item.mobtalk.bandit_spawn_egg": "Bandit Spawn Egg",
+  "entity.mobtalk.road_cart": "Road Cart",
+  "entity.mobtalk.road_wagon": "Covered Wagon",
   "mobtalk.settings.group.bandits": "City bandits",
   "mobtalk.settings.bandits": "Night bandits",
   "mobtalk.settings.bandits.tooltip": "At night in a city a gang may come for the player: asks for a share of the emeralds (\"your money or your life\"), attacks on a refusal, its blows snatch emeralds or things, a bandit with loot runs. A killed bandit drops the loot. Pay with a right click holding emeralds or a gift in the conversation.",
