@@ -365,7 +365,7 @@ public final class Tunables {
         reset(config, section);
         MobTalkConfig d = DEFAULTS;
         switch (section) {
-            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.labelsMoodFace = d.labelsMoodFace; config.humanVillagers = d.humanVillagers;
+            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.labelsMoodFace = d.labelsMoodFace; config.humanVillagers = d.humanVillagers; config.keepAcquainted = d.keepAcquainted;
                 config.overlayEnabled = d.overlayEnabled; config.overlayShowMe = d.overlayShowMe; config.overlayPort = d.overlayPort; config.overlaySubtitles = d.overlaySubtitles; config.overlayGod = d.overlayGod; config.overlayMercy = d.overlayMercy; config.overlayNow = d.overlayNow; config.overlayHeard = d.overlayHeard; config.overlayChatter = d.overlayChatter; config.overlayReduceMotion = d.overlayReduceMotion; config.overlayStyle = d.overlayStyle; config.overlayLayout = d.overlayLayout; }
             case VOICE -> {
                 config.whisperModel = d.whisperModel; config.whisperDevice = d.whisperDevice; config.whisperLanguage = d.whisperLanguage;
@@ -381,17 +381,17 @@ public final class Tunables {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
                 config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
                 config.mercantile = d.mercantile; config.mercOutfit = d.mercOutfit; config.mercGossip = d.mercGossip; config.mercLeave = d.mercLeave; config.mercBeg = d.mercBeg;
-                config.confession = d.confession; config.confessionAbbotsOnly = d.confessionAbbotsOnly; config.confessionHistoryText = d.confessionHistoryText;
+                config.confession = d.confession; config.confessionAbbotsOnly = d.confessionAbbotsOnly; config.confessionHistoryText = d.confessionHistoryText; config.confessionSlavonic = d.confessionSlavonic; config.confessionHud = d.confessionHud;
                 config.confessionStreamerPublic = d.confessionStreamerPublic; config.confessionPenancesOff = d.confessionPenancesOff;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;
-                config.socialBehavior = d.socialBehavior; config.initiative = d.initiative;
+                config.socialBehavior = d.socialBehavior; config.initiative = d.initiative; config.giftsFirst = d.giftsFirst;
                 config.villageChatter = d.villageChatter; config.villageNotices = d.villageNotices; config.villageSites = d.villageSites;
                 config.bandits = d.bandits; config.banditsRobVillagers = d.banditsRobVillagers; config.banditsInVillages = d.banditsInVillages; config.banditHaggle = d.banditHaggle; config.banditRumors = d.banditRumors; config.banditFearLight = d.banditFearLight;
                 config.villageParrotJokes = d.villageParrotJokes;
                 config.villageDefense = d.villageDefense; config.villageNoSpawn = d.villageNoSpawn; config.alarmAgainstPlayers = d.alarmAgainstPlayers; config.alarmChat = d.alarmChat; config.alarmSound = d.alarmSound; config.villageNoConversion = d.villageNoConversion; config.villageTowers = d.villageTowers; config.villageGuards = d.villageGuards; config.villageRoads = d.villageRoads; config.roadLamps = d.roadLamps; config.roadBypass = d.roadBypass; config.roadDecor = d.roadDecor; config.villageHeavy = d.villageHeavy; config.villageCavalry = d.villageCavalry; config.officials = d.officials; config.paperwork = d.paperwork; config.paperLunch = d.paperLunch; config.passportForWedding = d.passportForWedding; config.officialDacha = d.officialDacha; config.officialSmite = d.officialSmite; config.officialRevizor = d.officialRevizor; config.officialsShameless = d.officialsShameless; config.officialGossip = d.officialGossip; config.officialPapers = d.officialPapers; config.barsInVillages = d.barsInVillages; config.barEvenings = d.barEvenings; config.barVoiced = d.barVoiced; config.barAliceSpeaker = d.barAliceSpeaker; config.barDrinks = d.barDrinks;
                 config.casino = d.casino; config.casinoBouncers = d.casinoBouncers; config.casinoVisitors = d.casinoVisitors; config.casinoResort = d.casinoResort; config.casinoSparkles = d.casinoSparkles;
                 config.cities = d.cities;
-                config.cityShops = d.cityShops; config.shopStaff = d.shopStaff; config.shopTheftAlarm = d.shopTheftAlarm; config.shopSounds = d.shopSounds; config.cityMarkets = d.cityMarkets; config.marketCalls = d.marketCalls;
+                config.cityShops = d.cityShops; config.shopStaff = d.shopStaff; config.shopTheftAlarm = d.shopTheftAlarm; config.shopSounds = d.shopSounds; config.cityMarkets = d.cityMarkets; config.marketCalls = d.marketCalls; config.shopShoppers = d.shopShoppers; config.shopDeals = d.shopDeals; config.shopLoyalty = d.shopLoyalty;
                 config.divineTidings = d.divineTidings; config.divinePanic = d.divinePanic; config.divineMayExile = d.divineMayExile; config.divineMourners = d.divineMourners;
                 config.cards = d.cards; config.cardsVariant = d.cardsVariant; config.cardsItemStakes = d.cardsItemStakes; config.cardsCheating = d.cardsCheating;
                 config.tableInvite = d.tableInvite; config.tableLines = d.tableLines; config.tableSpeed = d.tableSpeed; config.tableHint = d.tableHint;
