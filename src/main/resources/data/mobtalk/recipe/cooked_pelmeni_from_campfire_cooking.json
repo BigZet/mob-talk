@@ -1,0 +1,12 @@
+{
+  "type": "minecraft:campfire_cooking",
+  "category": "food",
+  "ingredient": {
+    "item": "mobtalk:pelmeni"
+  },
+  "result": {
+    "id": "mobtalk:cooked_pelmeni"
+  },
+  "experience": 0.35,
+  "cookingtime": 600
+}

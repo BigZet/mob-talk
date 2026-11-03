@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city/lamp_grey_double"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city/lamp_grey_double",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city/lamp_grey_double",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city/lamp_grey_double",
+      "y": 270
+    }
+  }
+}

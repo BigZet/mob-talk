@@ -1,0 +1,135 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "enamel": "mobtalk:block/city2/furniture/enamel",
+    "net": "mobtalk:block/city2/furniture/net",
+    "particle": "mobtalk:block/city2/furniture/enamel"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        2.0
+      ],
+      "to": [
+        2.0,
+        16.0,
+        4.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#enamel",
+          "uv": [
+            14.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel",
+          "uv": [
+            0.0,
+            0.0,
+            2.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel",
+          "uv": [
+            12.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel",
+          "uv": [
+            2.0,
+            0.0,
+            4.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#enamel",
+          "uv": [
+            0.0,
+            12.0,
+            2.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        0.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#net",
+          "uv": [
+            0.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#net",
+          "uv": [
+            2.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        0.5,
+        0.0,
+        4.0
+      ],
+      "to": [
+        1.5,
+        16.0,
+        15.5
+      ],
+      "faces": {
+        "east": {
+          "texture": "#net",
+          "uv": [
+            0.5,
+            0.0,
+            12.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#net",
+          "uv": [
+            4.0,
+            0.0,
+            15.5,
+            16.0
+          ]
+        }
+      },
+      "shade": false
+    }
+  ]
+}

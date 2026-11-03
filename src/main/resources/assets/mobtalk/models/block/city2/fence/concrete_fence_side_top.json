@@ -1,0 +1,53 @@
+{
+ "textures": {
+  "post": "mobtalk:block/city2/fence/po2_post",
+  "top": "mobtalk:block/city2/fence/concrete_cap",
+  "wire": "mobtalk:block/city2/fence/po2_loop",
+  "particle": "mobtalk:block/city2/fence/po2_post",
+  "panel": "mobtalk:block/city2/fence/po2_top",
+  "panel_f": "mobtalk:block/city2/fence/po2_top_framed"
+ },
+ "elements": [
+  {
+   "from": [
+    6.75,
+    0,
+    0
+   ],
+   "to": [
+    9.25,
+    15,
+    8
+   ],
+   "faces": {
+    "east": {
+     "uv": [
+      0,
+      1,
+      8,
+      16
+     ],
+     "texture": "#panel"
+    },
+    "west": {
+     "uv": [
+      8,
+      1,
+      16,
+      16
+     ],
+     "texture": "#panel"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      2.5,
+      8
+     ],
+     "texture": "#top"
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,197 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "kid_pad_red": "mobtalk:block/city2/furniture/kid_pad_red",
+    "birch_ply": "mobtalk:block/city2/furniture/birch_ply",
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "particle": "mobtalk:block/city2/furniture/kid_pad_red"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        5.0,
+        4.0
+      ],
+      "to": [
+        15.5,
+        7.5,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            0.5,
+            8.5,
+            16.0,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            0.0,
+            8.5,
+            15.5,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            4.0,
+            8.5,
+            12.0,
+            11.0
+          ]
+        },
+        "up": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            0.0,
+            4.0,
+            15.5,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#kid_pad_red",
+          "uv": [
+            0.0,
+            4.0,
+            15.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        0.0,
+        5.0
+      ],
+      "to": [
+        14.5,
+        5.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            12.0,
+            11.0,
+            14.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            5.0,
+            11.0,
+            11.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            5.0,
+            11.0,
+            11.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply",
+          "uv": [
+            12.0,
+            5.0,
+            14.5,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            12.0,
+            5.0,
+            14.5,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        2.0,
+        7.5
+      ],
+      "to": [
+        12.0,
+        3.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            4.0,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            13.0,
+            12.0,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            7.5,
+            13.0,
+            8.5,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            7.5,
+            12.0,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            7.5,
+            12.0,
+            8.5
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,111 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "pub_pharmacy_showcase_pharm_sign_32": "mobtalk:block/city2/furniture/pub_pharmacy_showcase_pharm_sign_32",
+    "sign_blue": "mobtalk:block/city2/furniture/sign_blue",
+    "particle": "mobtalk:block/city2/furniture/glass"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        11.75
+      ],
+      "to": [
+        15.5,
+        4.0,
+        12.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "uv": [
+            0.5,
+            12.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            0.0,
+            12.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            3.75,
+            12.0,
+            4.25,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        4.0,
+        11.0
+      ],
+      "to": [
+        16.0,
+        8.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_pharmacy_showcase_pharm_sign_32",
+          "uv": [
+            0.0,
+            8.0,
+            16.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#sign_blue",
+          "uv": [
+            0.0,
+            8.0,
+            16.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#sign_blue",
+          "uv": [
+            3.0,
+            8.0,
+            5.0,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#sign_blue",
+          "uv": [
+            0.0,
+            11.0,
+            16.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#sign_blue",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            5.0
+          ]
+        }
+      }
+    }
+  ]
+}

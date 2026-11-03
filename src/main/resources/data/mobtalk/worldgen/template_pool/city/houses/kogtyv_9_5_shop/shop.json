@@ -1,0 +1,24 @@
+{
+  "name": "mobtalk:city/houses/kogtyv_9_5_shop/shop",
+  "fallback": "mobtalk:city/houses/kogtyv_9_5_shop/shop",
+  "elements": [
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_5_shop/shop/lib",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 1,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_5_shop/shop/bucher",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}

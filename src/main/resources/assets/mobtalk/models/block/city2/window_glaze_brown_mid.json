@@ -1,0 +1,45 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "g": "mobtalk:block/city2/win_brown_mid",
+  "fr": "mobtalk:block/city2/frame_brown",
+  "c": "mobtalk:block/city2/slab_side",
+  "rv": "mobtalk:block/city2/plaster_mid",
+  "particle": "mobtalk:block/city2/frame_brown"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    7.5
+   ],
+   "to": [
+    16,
+    16,
+    8.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#g",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#g",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  }
+ ],
+ "ambientocclusion": false
+}

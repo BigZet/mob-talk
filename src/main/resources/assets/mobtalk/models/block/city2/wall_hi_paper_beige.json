@@ -1,0 +1,33 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "f": "mobtalk:block/city2/paper_beige_hi",
+  "particle": "mobtalk:block/city2/paper_beige_hi"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    0
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#f",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "cullface": "north"
+    }
+   }
+  }
+ ]
+}

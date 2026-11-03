@@ -1,0 +1,138 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "plastic_white": "mobtalk:block/city2/furniture/plastic_white",
+    "bulb": "mobtalk:block/city2/furniture/bulb",
+    "particle": "mobtalk:block/city2/furniture/chrome"
+  },
+  "elements": [
+    {
+      "from": [
+        12.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        13.5,
+        2.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            2.5,
+            14.0,
+            4.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            14.0,
+            13.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            2.5,
+            14.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            14.0,
+            13.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            12.0,
+            12.0,
+            13.5,
+            13.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.0,
+        0.0,
+        9.0
+      ],
+      "to": [
+        14.0,
+        4.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_white",
+          "uv": [
+            2.0,
+            12.0,
+            8.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_white",
+          "uv": [
+            8.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_white",
+          "uv": [
+            2.0,
+            12.0,
+            7.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_white",
+          "uv": [
+            9.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_white",
+          "uv": [
+            8.0,
+            9.0,
+            14.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#bulb",
+          "uv": [
+            8.0,
+            2.0,
+            14.0,
+            7.0
+          ]
+        }
+      }
+    }
+  ]
+}

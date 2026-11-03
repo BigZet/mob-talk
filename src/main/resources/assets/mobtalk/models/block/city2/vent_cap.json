@@ -1,0 +1,129 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "b": "mobtalk:block/city2/brick",
+  "l": "mobtalk:block/city2/louvre",
+  "c": "mobtalk:block/city2/concrete",
+  "particle": "mobtalk:block/city2/brick"
+ },
+ "elements": [
+  {
+   "from": [
+    2,
+    0,
+    2
+   ],
+   "to": [
+    14,
+    9,
+    14
+   ],
+   "faces": {
+    "north": {
+     "texture": "#l",
+     "uv": [
+      2,
+      7,
+      14,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#l",
+     "uv": [
+      2,
+      7,
+      14,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#l",
+     "uv": [
+      2,
+      7,
+      14,
+      16
+     ]
+    },
+    "west": {
+     "texture": "#l",
+     "uv": [
+      2,
+      7,
+      14,
+      16
+     ]
+    }
+   }
+  },
+  {
+   "from": [
+    1,
+    9,
+    1
+   ],
+   "to": [
+    15,
+    11,
+    15
+   ],
+   "faces": {
+    "north": {
+     "texture": "#c",
+     "uv": [
+      1,
+      5,
+      15,
+      7
+     ]
+    },
+    "south": {
+     "texture": "#c",
+     "uv": [
+      1,
+      5,
+      15,
+      7
+     ]
+    },
+    "east": {
+     "texture": "#c",
+     "uv": [
+      1,
+      5,
+      15,
+      7
+     ]
+    },
+    "west": {
+     "texture": "#c",
+     "uv": [
+      1,
+      5,
+      15,
+      7
+     ]
+    },
+    "up": {
+     "texture": "#c",
+     "uv": [
+      1,
+      1,
+      15,
+      15
+     ]
+    },
+    "down": {
+     "texture": "#c",
+     "uv": [
+      1,
+      1,
+      15,
+      15
+     ]
+    }
+   }
+  }
+ ]
+}

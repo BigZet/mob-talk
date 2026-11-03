@@ -1,0 +1,69 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "p": "mobtalk:block/city2/entrance_plate",
+  "m": "mobtalk:block/city2/metal_dark",
+  "particle": "mobtalk:block/city2/entrance_plate"
+ },
+ "elements": [
+  {
+   "from": [
+    4,
+    4,
+    15.25
+   ],
+   "to": [
+    12,
+    12,
+    16
+   ],
+   "faces": {
+    "north": {
+     "texture": "#p",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "east": {
+     "texture": "#m",
+     "uv": [
+      15.25,
+      4,
+      16,
+      12
+     ]
+    },
+    "west": {
+     "texture": "#m",
+     "uv": [
+      15.25,
+      4,
+      16,
+      12
+     ]
+    },
+    "up": {
+     "texture": "#m",
+     "uv": [
+      4,
+      15.25,
+      12,
+      16
+     ]
+    },
+    "down": {
+     "texture": "#m",
+     "uv": [
+      4,
+      15.25,
+      12,
+      16
+     ]
+    }
+   }
+  }
+ ]
+}

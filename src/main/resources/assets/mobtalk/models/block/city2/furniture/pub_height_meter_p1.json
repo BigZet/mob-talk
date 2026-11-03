@@ -1,0 +1,198 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_height_meter_height_scale_43": "mobtalk:block/city2/furniture/pub_height_meter_height_scale_43",
+    "oak": "mobtalk:block/city2/furniture/oak",
+    "lightwood": "mobtalk:block/city2/furniture/lightwood",
+    "brass": "mobtalk:block/city2/furniture/brass",
+    "particle": "mobtalk:block/city2/furniture/pub_height_meter_height_scale_43"
+  },
+  "elements": [
+    {
+      "from": [
+        6.0,
+        0.0,
+        13.0
+      ],
+      "to": [
+        10.0,
+        16.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_height_meter_height_scale_43",
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#oak",
+          "uv": [
+            6.0,
+            0.0,
+            10.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#oak",
+          "uv": [
+            1.0,
+            0.0,
+            3.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#oak",
+          "uv": [
+            13.0,
+            0.0,
+            15.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.0,
+        14.0,
+        4.0
+      ],
+      "to": [
+        9.0,
+        15.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#lightwood",
+          "uv": [
+            7.0,
+            1.0,
+            9.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#lightwood",
+          "uv": [
+            7.0,
+            1.0,
+            9.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#lightwood",
+          "uv": [
+            3.0,
+            1.0,
+            12.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#lightwood",
+          "uv": [
+            4.0,
+            1.0,
+            13.0,
+            2.0
+          ]
+        },
+        "up": {
+          "texture": "#lightwood",
+          "uv": [
+            7.0,
+            4.0,
+            9.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#lightwood",
+          "uv": [
+            7.0,
+            3.0,
+            9.0,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        13.5,
+        12.0
+      ],
+      "to": [
+        9.5,
+        15.5,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass",
+          "uv": [
+            6.5,
+            0.5,
+            9.5,
+            2.5
+          ]
+        },
+        "south": {
+          "texture": "#brass",
+          "uv": [
+            6.5,
+            0.5,
+            9.5,
+            2.5
+          ]
+        },
+        "east": {
+          "texture": "#brass",
+          "uv": [
+            2.5,
+            0.5,
+            4.0,
+            2.5
+          ]
+        },
+        "west": {
+          "texture": "#brass",
+          "uv": [
+            12.0,
+            0.5,
+            13.5,
+            2.5
+          ]
+        },
+        "up": {
+          "texture": "#brass",
+          "uv": [
+            6.5,
+            12.0,
+            9.5,
+            13.5
+          ]
+        },
+        "down": {
+          "texture": "#brass",
+          "uv": [
+            6.5,
+            2.5,
+            9.5,
+            4.0
+          ]
+        }
+      }
+    }
+  ]
+}

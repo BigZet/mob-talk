@@ -1,0 +1,361 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "crate_wood": "mobtalk:block/city2/furniture/crate_wood",
+    "potato": "mobtalk:block/city2/furniture/potato",
+    "cabbage": "mobtalk:block/city2/furniture/cabbage",
+    "particle": "mobtalk:block/city2/furniture/crate_wood"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        1.0
+      ],
+      "to": [
+        7.5,
+        6.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#crate_wood",
+          "uv": [
+            8.5,
+            10.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#crate_wood",
+          "uv": [
+            0.5,
+            10.0,
+            7.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#crate_wood",
+          "uv": [
+            1.0,
+            10.0,
+            15.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#crate_wood",
+          "uv": [
+            1.0,
+            10.0,
+            15.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#crate_wood",
+          "uv": [
+            0.5,
+            1.0,
+            7.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        1.0,
+        1.5
+      ],
+      "to": [
+        7.0,
+        5.5,
+        14.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#potato",
+          "uv": [
+            1.0,
+            1.5,
+            7.0,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.5,
+        0.0,
+        1.0
+      ],
+      "to": [
+        15.5,
+        6.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#crate_wood",
+          "uv": [
+            0.5,
+            10.0,
+            7.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#crate_wood",
+          "uv": [
+            8.5,
+            10.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#crate_wood",
+          "uv": [
+            1.0,
+            10.0,
+            15.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#crate_wood",
+          "uv": [
+            1.0,
+            10.0,
+            15.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#crate_wood",
+          "uv": [
+            8.5,
+            1.0,
+            15.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.0,
+        1.0,
+        1.5
+      ],
+      "to": [
+        15.0,
+        5.5,
+        14.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#cabbage",
+          "uv": [
+            9.0,
+            1.5,
+            15.0,
+            14.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.5,
+        7.0,
+        1.0
+      ],
+      "to": [
+        7.5,
+        13.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#crate_wood",
+          "uv": [
+            8.5,
+            3.0,
+            15.5,
+            9.0
+          ]
+        },
+        "south": {
+          "texture": "#crate_wood",
+          "uv": [
+            0.5,
+            3.0,
+            7.5,
+            9.0
+          ]
+        },
+        "east": {
+          "texture": "#crate_wood",
+          "uv": [
+            1.0,
+            3.0,
+            15.0,
+            9.0
+          ]
+        },
+        "west": {
+          "texture": "#crate_wood",
+          "uv": [
+            1.0,
+            3.0,
+            15.0,
+            9.0
+          ]
+        },
+        "down": {
+          "texture": "#crate_wood",
+          "uv": [
+            0.5,
+            1.0,
+            7.5,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        8.0,
+        1.5
+      ],
+      "to": [
+        7.0,
+        12.5,
+        14.5
+      ],
+      "faces": {
+        "up": {
+          "texture": "#potato",
+          "uv": [
+            1.0,
+            1.5,
+            7.0,
+            14.5
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

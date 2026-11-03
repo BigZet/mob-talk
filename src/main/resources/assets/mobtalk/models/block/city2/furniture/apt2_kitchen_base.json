@@ -1,0 +1,284 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "silver": "mobtalk:block/city2/furniture/silver",
+    "apt2_kitchen_base_doors_44": "mobtalk:block/city2/furniture/apt2_kitchen_base_doors_44",
+    "gloss_lime": "mobtalk:block/city2/furniture/gloss_lime",
+    "apt2_kitchen_base_edge_44": "mobtalk:block/city2/furniture/apt2_kitchen_base_edge_44",
+    "worktop_2k": "mobtalk:block/city2/furniture/worktop_2k",
+    "apt2_kitchen_base_microwave_44": "mobtalk:block/city2/furniture/apt2_kitchen_base_microwave_44",
+    "plastic_white": "mobtalk:block/city2/furniture/plastic_white",
+    "apt2_kitchen_base_microwave_43": "mobtalk:block/city2/furniture/apt2_kitchen_base_microwave_43",
+    "particle": "mobtalk:block/city2/furniture/silver"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        2.5
+      ],
+      "to": [
+        15.5,
+        1.5,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#silver",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#silver",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#silver",
+          "uv": [
+            0.5,
+            14.5,
+            13.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#silver",
+          "uv": [
+            2.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        1.5,
+        1.5
+      ],
+      "to": [
+        16.0,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_kitchen_base_doors_44",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#gloss_lime",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "east": {
+          "texture": "#gloss_lime",
+          "uv": [
+            0.0,
+            3.0,
+            14.5,
+            14.5
+          ]
+        },
+        "west": {
+          "texture": "#gloss_lime",
+          "uv": [
+            1.5,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "up": {
+          "texture": "#gloss_lime",
+          "uv": [
+            0.0,
+            1.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        13.0,
+        0.5
+      ],
+      "to": [
+        16.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_kitchen_base_edge_44",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#worktop_2k",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#worktop_2k",
+          "uv": [
+            0.0,
+            2.0,
+            15.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#worktop_2k",
+          "uv": [
+            0.5,
+            2.0,
+            16.0,
+            3.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        14.0,
+        7.0
+      ],
+      "to": [
+        12.0,
+        16.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_kitchen_base_microwave_44",
+          "uv": [
+            4.0,
+            0.0,
+            14.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_white",
+          "uv": [
+            2.0,
+            0.0,
+            12.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_white",
+          "uv": [
+            1.0,
+            0.0,
+            9.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_white",
+          "uv": [
+            7.0,
+            0.0,
+            15.0,
+            2.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        16.0,
+        7.0
+      ],
+      "to": [
+        12.0,
+        20.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_kitchen_base_microwave_43",
+          "uv": [
+            4.0,
+            12.0,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_white",
+          "uv": [
+            2.0,
+            12.0,
+            12.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_white",
+          "uv": [
+            1.0,
+            12.0,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_white",
+          "uv": [
+            7.0,
+            12.0,
+            15.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_white",
+          "uv": [
+            2.0,
+            7.0,
+            12.0,
+            15.0
+          ]
+        }
+      }
+    }
+  ]
+}

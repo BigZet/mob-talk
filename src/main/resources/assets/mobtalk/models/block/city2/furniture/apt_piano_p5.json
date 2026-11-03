@@ -1,0 +1,239 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_piano_front_33": "mobtalk:block/city2/furniture/apt_piano_front_33",
+    "lacquer": "mobtalk:block/city2/furniture/lacquer",
+    "brass": "mobtalk:block/city2/furniture/brass",
+    "candle": "mobtalk:block/city2/furniture/candle",
+    "particle": "mobtalk:block/city2/furniture/apt_piano_front_33"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        10.0
+      ],
+      "to": [
+        8.0,
+        5.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_piano_front_33",
+          "uv": [
+            8.0,
+            11.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            11.0,
+            8.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            11.0,
+            6.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#lacquer",
+          "uv": [
+            0.0,
+            10.0,
+            8.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        1.0,
+        9.5
+      ],
+      "to": [
+        5.0,
+        1.5,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass",
+          "uv": [
+            11.0,
+            14.5,
+            13.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#brass",
+          "uv": [
+            6.0,
+            14.5,
+            6.5,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#brass",
+          "uv": [
+            9.5,
+            14.5,
+            10.0,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#brass",
+          "uv": [
+            3.0,
+            9.5,
+            5.0,
+            10.0
+          ]
+        },
+        "down": {
+          "texture": "#brass",
+          "uv": [
+            3.0,
+            6.0,
+            5.0,
+            6.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.5,
+        1.5,
+        8.5
+      ],
+      "to": [
+        4.5,
+        2.0,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass",
+          "uv": [
+            11.5,
+            14.0,
+            12.5,
+            14.5
+          ]
+        },
+        "east": {
+          "texture": "#brass",
+          "uv": [
+            6.5,
+            14.0,
+            7.5,
+            14.5
+          ]
+        },
+        "west": {
+          "texture": "#brass",
+          "uv": [
+            8.5,
+            14.0,
+            9.5,
+            14.5
+          ]
+        },
+        "up": {
+          "texture": "#brass",
+          "uv": [
+            3.5,
+            8.5,
+            4.5,
+            9.5
+          ]
+        },
+        "down": {
+          "texture": "#brass",
+          "uv": [
+            3.5,
+            6.5,
+            4.5,
+            7.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.75,
+        2.0,
+        8.75
+      ],
+      "to": [
+        4.25,
+        4.0,
+        9.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#candle",
+          "uv": [
+            11.75,
+            12.0,
+            12.25,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#candle",
+          "uv": [
+            3.75,
+            12.0,
+            4.25,
+            14.0
+          ]
+        },
+        "east": {
+          "texture": "#candle",
+          "uv": [
+            6.75,
+            12.0,
+            7.25,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#candle",
+          "uv": [
+            8.75,
+            12.0,
+            9.25,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#candle",
+          "uv": [
+            3.75,
+            8.75,
+            4.25,
+            9.25
+          ]
+        }
+      }
+    }
+  ]
+}

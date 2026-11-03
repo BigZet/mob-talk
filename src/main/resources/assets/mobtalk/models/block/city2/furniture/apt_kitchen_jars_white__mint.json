@@ -1,0 +1,544 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "black": "mobtalk:block/city2/furniture/black",
+    "apt_kitchen_jars_white__mint_doors_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_doors_44",
+    "apt_kitchen_jars_white__mint__enamel": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint__enamel",
+    "apt_kitchen_jars_white__mint_edge_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_edge_44",
+    "worktop": "mobtalk:block/city2/furniture/worktop",
+    "apt_kitchen_jars_white__mint_pickles_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_pickles_44",
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "apt_kitchen_jars_white__mint_pickles_43": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_pickles_43",
+    "jar_lid": "mobtalk:block/city2/furniture/jar_lid",
+    "apt_kitchen_jars_white__mint_compote_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_compote_44",
+    "apt_kitchen_jars_white__mint_compote_43": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_compote_43",
+    "apt_kitchen_jars_white__mint_breadbin_44": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_breadbin_44",
+    "cream": "mobtalk:block/city2/furniture/cream",
+    "apt_kitchen_jars_white__mint_breadbin_43": "mobtalk:block/city2/furniture/apt_kitchen_jars_white__mint_breadbin_43",
+    "particle": "mobtalk:block/city2/furniture/black"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        2.5
+      ],
+      "to": [
+        15.5,
+        1.5,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            14.5,
+            13.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            2.5,
+            14.5,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        1.5,
+        1.5
+      ],
+      "to": [
+        16.0,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_doors_44",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "south": {
+          "texture": "#apt_kitchen_jars_white__mint__enamel",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "east": {
+          "texture": "#apt_kitchen_jars_white__mint__enamel",
+          "uv": [
+            0.0,
+            3.0,
+            14.5,
+            14.5
+          ]
+        },
+        "west": {
+          "texture": "#apt_kitchen_jars_white__mint__enamel",
+          "uv": [
+            1.5,
+            3.0,
+            16.0,
+            14.5
+          ]
+        },
+        "up": {
+          "texture": "#apt_kitchen_jars_white__mint__enamel",
+          "uv": [
+            0.0,
+            1.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        13.0,
+        0.5
+      ],
+      "to": [
+        16.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_edge_44",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            2.0,
+            15.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#worktop",
+          "uv": [
+            0.5,
+            2.0,
+            16.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#worktop",
+          "uv": [
+            0.0,
+            0.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        14.0,
+        9.0
+      ],
+      "to": [
+        13.0,
+        16.0,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_pickles_44",
+          "uv": [
+            3.0,
+            0.0,
+            5.5,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            10.5,
+            0.0,
+            13.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            4.5,
+            0.0,
+            7.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            9.0,
+            0.0,
+            11.5,
+            2.0
+          ]
+        },
+        "down": {
+          "texture": "#glass",
+          "uv": [
+            10.5,
+            4.5,
+            13.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        10.5,
+        16.0,
+        9.0
+      ],
+      "to": [
+        13.0,
+        18.5,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_pickles_43",
+          "uv": [
+            3.0,
+            13.5,
+            5.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            10.5,
+            13.5,
+            13.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            4.5,
+            13.5,
+            7.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            9.0,
+            13.5,
+            11.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#jar_lid",
+          "uv": [
+            10.5,
+            9.0,
+            13.0,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        13.0,
+        14.0,
+        9.0
+      ],
+      "to": [
+        15.5,
+        16.0,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_compote_44",
+          "uv": [
+            0.5,
+            0.0,
+            3.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            13.0,
+            0.0,
+            15.5,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            4.5,
+            0.0,
+            7.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            9.0,
+            0.0,
+            11.5,
+            2.0
+          ]
+        },
+        "down": {
+          "texture": "#glass",
+          "uv": [
+            13.0,
+            4.5,
+            15.5,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        13.0,
+        16.0,
+        9.0
+      ],
+      "to": [
+        15.5,
+        18.5,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_compote_43",
+          "uv": [
+            0.5,
+            13.5,
+            3.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            13.0,
+            13.5,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            4.5,
+            13.5,
+            7.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            9.0,
+            13.5,
+            11.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#jar_lid",
+          "uv": [
+            13.0,
+            9.0,
+            15.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        14.0,
+        7.0
+      ],
+      "to": [
+        9.0,
+        16.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_breadbin_44",
+          "uv": [
+            7.0,
+            0.0,
+            15.0,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#cream",
+          "uv": [
+            1.0,
+            0.0,
+            9.0,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#cream",
+          "uv": [
+            2.0,
+            0.0,
+            9.0,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#cream",
+          "uv": [
+            7.0,
+            0.0,
+            14.0,
+            2.0
+          ]
+        },
+        "down": {
+          "texture": "#cream",
+          "uv": [
+            1.0,
+            2.0,
+            9.0,
+            9.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        16.0,
+        7.0
+      ],
+      "to": [
+        9.0,
+        18.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_kitchen_jars_white__mint_breadbin_43",
+          "uv": [
+            7.0,
+            14.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#cream",
+          "uv": [
+            1.0,
+            14.0,
+            9.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#cream",
+          "uv": [
+            2.0,
+            14.0,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#cream",
+          "uv": [
+            7.0,
+            14.0,
+            14.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#cream",
+          "uv": [
+            1.0,
+            7.0,
+            9.0,
+            14.0
+          ]
+        }
+      }
+    }
+  ]
+}

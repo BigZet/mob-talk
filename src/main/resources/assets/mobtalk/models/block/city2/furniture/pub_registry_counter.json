@@ -1,0 +1,60 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_registry_counter_reg_front_44": "mobtalk:block/city2/furniture/pub_registry_counter_reg_front_44",
+    "walnut": "mobtalk:block/city2/furniture/walnut",
+    "particle": "mobtalk:block/city2/furniture/pub_registry_counter_reg_front_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        4.0
+      ],
+      "to": [
+        16.0,
+        16.0,
+        10.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_registry_counter_reg_front_44",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            0.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut",
+          "uv": [
+            4.0,
+            0.0,
+            10.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#walnut",
+          "uv": [
+            0.0,
+            4.0,
+            16.0,
+            10.0
+          ]
+        }
+      }
+    }
+  ]
+}

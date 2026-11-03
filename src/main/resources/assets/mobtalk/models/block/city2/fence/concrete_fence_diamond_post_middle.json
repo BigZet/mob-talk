@@ -1,0 +1,69 @@
+{
+ "textures": {
+  "post": "mobtalk:block/city2/fence/concrete_post",
+  "panel": "mobtalk:block/city2/fence/concrete_middle",
+  "top": "mobtalk:block/city2/fence/concrete_cap",
+  "particle": "mobtalk:block/city2/fence/concrete_post"
+ },
+ "elements": [
+  {
+   "from": [
+    5,
+    0,
+    5
+   ],
+   "to": [
+    11,
+    16,
+    11
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "texture": "#post"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "texture": "#post"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "texture": "#post"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "texture": "#post"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      6,
+      6
+     ],
+     "texture": "#post"
+    }
+   }
+  }
+ ]
+}

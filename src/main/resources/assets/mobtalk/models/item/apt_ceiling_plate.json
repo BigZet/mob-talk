@@ -1,0 +1,243 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "shade_white_lit": "mobtalk:block/city2/furniture/shade_white_lit",
+    "apt_ceiling_plate_plate_on_44": "mobtalk:block/city2/furniture/apt_ceiling_plate_plate_on_44",
+    "brass": "mobtalk:block/city2/furniture/brass",
+    "particle": "mobtalk:block/city2/furniture/shade_white_lit"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        15.0,
+        3.0
+      ],
+      "to": [
+        13.0,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#shade_white_lit",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#shade_white_lit",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            1.0
+          ]
+        },
+        "east": {
+          "texture": "#shade_white_lit",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            1.0
+          ]
+        },
+        "west": {
+          "texture": "#shade_white_lit",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            1.0
+          ]
+        },
+        "up": {
+          "texture": "#shade_white_lit",
+          "uv": [
+            3.0,
+            3.0,
+            13.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#apt_ceiling_plate_plate_on_44",
+          "uv": [
+            3.0,
+            3.0,
+            13.0,
+            13.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        7.0,
+        14.5,
+        7.0
+      ],
+      "to": [
+        9.0,
+        15.0,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass",
+          "uv": [
+            7.0,
+            1.0,
+            9.0,
+            1.5
+          ]
+        },
+        "south": {
+          "texture": "#brass",
+          "uv": [
+            7.0,
+            1.0,
+            9.0,
+            1.5
+          ]
+        },
+        "east": {
+          "texture": "#brass",
+          "uv": [
+            7.0,
+            1.0,
+            9.0,
+            1.5
+          ]
+        },
+        "west": {
+          "texture": "#brass",
+          "uv": [
+            7.0,
+            1.0,
+            9.0,
+            1.5
+          ]
+        },
+        "down": {
+          "texture": "#brass",
+          "uv": [
+            7.0,
+            7.0,
+            9.0,
+            9.0
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

@@ -1,0 +1,334 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "chrome": "mobtalk:block/city2/furniture/chrome",
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "rubber": "mobtalk:block/city2/furniture/rubber",
+    "plastic_white": "mobtalk:block/city2/furniture/plastic_white",
+    "particle": "mobtalk:block/city2/furniture/chrome"
+  },
+  "elements": [
+    {
+      "from": [
+        7.5,
+        0.0,
+        7.5
+      ],
+      "to": [
+        8.5,
+        13.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            3.0,
+            8.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            3.0,
+            8.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            3.0,
+            8.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            3.0,
+            8.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        13.0,
+        7.5
+      ],
+      "to": [
+        12.0,
+        14.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            2.0,
+            12.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            2.0,
+            8.5,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#chrome",
+          "uv": [
+            7.5,
+            2.0,
+            8.5,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            7.5,
+            12.0,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#chrome",
+          "uv": [
+            4.0,
+            7.5,
+            12.0,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        5.0,
+        6.5
+      ],
+      "to": [
+        6.0,
+        12.0,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "uv": [
+            10.0,
+            4.0,
+            13.0,
+            11.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            3.0,
+            4.0,
+            6.0,
+            11.0
+          ]
+        },
+        "east": {
+          "texture": "#glass",
+          "uv": [
+            6.5,
+            4.0,
+            9.5,
+            11.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            6.5,
+            4.0,
+            9.5,
+            11.0
+          ]
+        },
+        "up": {
+          "texture": "#glass",
+          "uv": [
+            3.0,
+            6.5,
+            6.0,
+            9.5
+          ]
+        },
+        "down": {
+          "texture": "#glass",
+          "uv": [
+            3.0,
+            6.5,
+            6.0,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        4.0,
+        7.5
+      ],
+      "to": [
+        5.0,
+        5.0,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#rubber",
+          "uv": [
+            11.0,
+            11.0,
+            12.0,
+            12.0
+          ]
+        },
+        "south": {
+          "texture": "#rubber",
+          "uv": [
+            4.0,
+            11.0,
+            5.0,
+            12.0
+          ]
+        },
+        "east": {
+          "texture": "#rubber",
+          "uv": [
+            7.5,
+            11.0,
+            8.5,
+            12.0
+          ]
+        },
+        "west": {
+          "texture": "#rubber",
+          "uv": [
+            7.5,
+            11.0,
+            8.5,
+            12.0
+          ]
+        },
+        "up": {
+          "texture": "#rubber",
+          "uv": [
+            4.0,
+            7.5,
+            5.0,
+            8.5
+          ]
+        },
+        "down": {
+          "texture": "#rubber",
+          "uv": [
+            4.0,
+            7.5,
+            5.0,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.25,
+        0.0,
+        7.75
+      ],
+      "to": [
+        4.75,
+        4.0,
+        8.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_white",
+          "uv": [
+            11.25,
+            12.0,
+            11.75,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#plastic_white",
+          "uv": [
+            4.25,
+            12.0,
+            4.75,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_white",
+          "uv": [
+            7.75,
+            12.0,
+            8.25,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_white",
+          "uv": [
+            7.75,
+            12.0,
+            8.25,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_white",
+          "uv": [
+            4.25,
+            7.75,
+            4.75,
+            8.25
+          ]
+        }
+      }
+    }
+  ]
+}

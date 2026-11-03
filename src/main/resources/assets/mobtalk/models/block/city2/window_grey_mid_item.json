@@ -1,0 +1,48 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "p": "mobtalk:block/city2/panel_grey",
+  "rv": "mobtalk:block/city2/plaster_mid",
+  "tin": "mobtalk:block/city2/tin",
+  "sill": "mobtalk:block/city2/sill",
+  "c": "mobtalk:block/city2/slab_side",
+  "in": "mobtalk:block/city2/plaster_mid",
+  "g": "mobtalk:block/city2/win_pvc_mid",
+  "fr": "mobtalk:block/city2/frame_white",
+  "particle": "mobtalk:block/city2/frame_white"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    7.5
+   ],
+   "to": [
+    16,
+    16,
+    8.5
+   ],
+   "faces": {
+    "north": {
+     "texture": "#g",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    },
+    "south": {
+     "texture": "#g",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ]
+    }
+   }
+  }
+ ]
+}

@@ -1,0 +1,754 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pot_clay": "mobtalk:block/city2/furniture/pot_clay",
+    "soil": "mobtalk:block/city2/furniture/soil",
+    "trunk": "mobtalk:block/city2/furniture/trunk",
+    "apt_ficus_leaf0_44": "mobtalk:block/city2/furniture/apt_ficus_leaf0_44",
+    "apt_ficus_leafd0_44": "mobtalk:block/city2/furniture/apt_ficus_leafd0_44",
+    "apt_ficus_leaf1_44": "mobtalk:block/city2/furniture/apt_ficus_leaf1_44",
+    "apt_ficus_leafd1_44": "mobtalk:block/city2/furniture/apt_ficus_leafd1_44",
+    "apt_ficus_leaf2_44": "mobtalk:block/city2/furniture/apt_ficus_leaf2_44",
+    "apt_ficus_leafd2_44": "mobtalk:block/city2/furniture/apt_ficus_leafd2_44",
+    "apt_ficus_leaf3_44": "mobtalk:block/city2/furniture/apt_ficus_leaf3_44",
+    "apt_ficus_leafd3_44": "mobtalk:block/city2/furniture/apt_ficus_leafd3_44",
+    "apt_ficus_leaf4_44": "mobtalk:block/city2/furniture/apt_ficus_leaf4_44",
+    "apt_ficus_leafd4_44": "mobtalk:block/city2/furniture/apt_ficus_leafd4_44",
+    "apt_ficus_leaf5_44": "mobtalk:block/city2/furniture/apt_ficus_leaf5_44",
+    "apt_ficus_leafd5_44": "mobtalk:block/city2/furniture/apt_ficus_leafd5_44",
+    "apt_ficus_leaf6_44": "mobtalk:block/city2/furniture/apt_ficus_leaf6_44",
+    "apt_ficus_leafd6_44": "mobtalk:block/city2/furniture/apt_ficus_leafd6_44",
+    "apt_ficus_leaf7_44": "mobtalk:block/city2/furniture/apt_ficus_leaf7_44",
+    "apt_ficus_leafd7_44": "mobtalk:block/city2/furniture/apt_ficus_leafd7_44",
+    "apt_ficus_leaf8_44": "mobtalk:block/city2/furniture/apt_ficus_leaf8_44",
+    "apt_ficus_leafd8_44": "mobtalk:block/city2/furniture/apt_ficus_leafd8_44",
+    "ficus_stalk": "mobtalk:block/city2/furniture/ficus_stalk",
+    "red_paint": "mobtalk:block/city2/furniture/red_paint",
+    "particle": "mobtalk:block/city2/furniture/pot_clay"
+  },
+  "elements": [
+    {
+      "from": [
+        6.069,
+        0.0,
+        6.069
+      ],
+      "to": [
+        9.931,
+        3.3103,
+        9.931
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pot_clay",
+          "uv": [
+            4.5,
+            10.0,
+            11.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#pot_clay",
+          "uv": [
+            4.5,
+            10.0,
+            11.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#pot_clay",
+          "uv": [
+            4.5,
+            10.0,
+            11.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#pot_clay",
+          "uv": [
+            4.5,
+            10.0,
+            11.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#pot_clay",
+          "uv": [
+            4.5,
+            4.5,
+            11.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.3448,
+        3.1724,
+        6.3448
+      ],
+      "to": [
+        9.6552,
+        3.1724,
+        9.6552
+      ],
+      "faces": {
+        "up": {
+          "texture": "#soil",
+          "uv": [
+            5.0,
+            5.0,
+            11.0,
+            11.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.7241,
+        3.1724,
+        7.7241
+      ],
+      "to": [
+        8.2759,
+        13.7931,
+        8.2759
+      ],
+      "faces": {
+        "north": {
+          "texture": "#trunk",
+          "uv": [
+            7.5,
+            7.0,
+            8.5,
+            26.25
+          ]
+        },
+        "south": {
+          "texture": "#trunk",
+          "uv": [
+            7.5,
+            7.0,
+            8.5,
+            26.25
+          ]
+        },
+        "east": {
+          "texture": "#trunk",
+          "uv": [
+            7.5,
+            7.0,
+            8.5,
+            26.25
+          ]
+        },
+        "west": {
+          "texture": "#trunk",
+          "uv": [
+            7.5,
+            7.0,
+            8.5,
+            26.25
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        8.2759,
+        5.5172,
+        7.0345
+      ],
+      "to": [
+        12.1379,
+        5.5172,
+        8.9655
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf0_44",
+          "uv": [
+            8.5,
+            6.25,
+            15.5,
+            9.75
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd0_44",
+          "uv": [
+            8.5,
+            6.25,
+            15.5,
+            9.75
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.2759,
+          5.5172,
+          8.0
+        ],
+        "axis": "z",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        3.8621,
+        6.6207,
+        7.0345
+      ],
+      "to": [
+        7.7241,
+        6.6207,
+        8.9655
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf1_44",
+          "uv": [
+            0.5,
+            6.25,
+            7.5,
+            9.75
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd1_44",
+          "uv": [
+            0.5,
+            6.25,
+            7.5,
+            9.75
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          7.7241,
+          6.6207,
+          8.0
+        ],
+        "axis": "z",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        7.0345,
+        7.7241,
+        8.2759
+      ],
+      "to": [
+        8.9655,
+        7.7241,
+        12.1379
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf2_44",
+          "uv": [
+            6.25,
+            8.5,
+            9.75,
+            15.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd2_44",
+          "uv": [
+            6.25,
+            0.5,
+            9.75,
+            7.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          7.7241,
+          8.2759
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        7.0345,
+        8.8276,
+        3.8621
+      ],
+      "to": [
+        8.9655,
+        8.8276,
+        7.7241
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf3_44",
+          "uv": [
+            6.25,
+            0.5,
+            9.75,
+            7.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd3_44",
+          "uv": [
+            6.25,
+            8.5,
+            9.75,
+            15.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          8.8276,
+          7.7241
+        ],
+        "axis": "x",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        8.2759,
+        9.931,
+        7.0345
+      ],
+      "to": [
+        12.1379,
+        9.931,
+        8.9655
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf4_44",
+          "uv": [
+            8.5,
+            6.25,
+            15.5,
+            9.75
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd4_44",
+          "uv": [
+            8.5,
+            6.25,
+            15.5,
+            9.75
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.2759,
+          9.931,
+          8.0
+        ],
+        "axis": "z",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        7.0345,
+        10.7586,
+        8.2759
+      ],
+      "to": [
+        8.9655,
+        10.7586,
+        12.1379
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf5_44",
+          "uv": [
+            6.25,
+            8.5,
+            9.75,
+            15.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd5_44",
+          "uv": [
+            6.25,
+            0.5,
+            9.75,
+            7.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          10.7586,
+          8.2759
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        4.6897,
+        11.5862,
+        7.1724
+      ],
+      "to": [
+        7.7241,
+        11.5862,
+        8.8276
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf6_44",
+          "uv": [
+            2.0,
+            6.5,
+            7.5,
+            9.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd6_44",
+          "uv": [
+            2.0,
+            6.5,
+            7.5,
+            9.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          7.7241,
+          11.5862,
+          8.0
+        ],
+        "axis": "z",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        7.1724,
+        12.4138,
+        4.6897
+      ],
+      "to": [
+        8.8276,
+        12.4138,
+        7.7241
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf7_44",
+          "uv": [
+            6.5,
+            2.0,
+            9.5,
+            7.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd7_44",
+          "uv": [
+            6.5,
+            8.5,
+            9.5,
+            14.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.0,
+          12.4138,
+          7.7241
+        ],
+        "axis": "x",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        8.2759,
+        13.2414,
+        7.1724
+      ],
+      "to": [
+        11.3103,
+        13.2414,
+        8.8276
+      ],
+      "faces": {
+        "up": {
+          "texture": "#apt_ficus_leaf8_44",
+          "uv": [
+            8.5,
+            6.5,
+            14.0,
+            9.5
+          ]
+        },
+        "down": {
+          "texture": "#apt_ficus_leafd8_44",
+          "uv": [
+            8.5,
+            6.5,
+            14.0,
+            9.5
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8.2759,
+          13.2414,
+          8.0
+        ],
+        "axis": "z",
+        "angle": 22.5
+      }
+    },
+    {
+      "from": [
+        7.7241,
+        13.7931,
+        7.7241
+      ],
+      "to": [
+        8.2759,
+        15.4483,
+        8.2759
+      ],
+      "faces": {
+        "north": {
+          "texture": "#ficus_stalk",
+          "uv": [
+            7.5,
+            4.0,
+            8.5,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#ficus_stalk",
+          "uv": [
+            7.5,
+            4.0,
+            8.5,
+            7.0
+          ]
+        },
+        "east": {
+          "texture": "#ficus_stalk",
+          "uv": [
+            7.5,
+            4.0,
+            8.5,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#ficus_stalk",
+          "uv": [
+            7.5,
+            4.0,
+            8.5,
+            7.0
+          ]
+        },
+        "up": {
+          "texture": "#ficus_stalk",
+          "uv": [
+            7.5,
+            7.5,
+            8.5,
+            8.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.8621,
+        15.4483,
+        7.8621
+      ],
+      "to": [
+        8.1379,
+        16.0,
+        8.1379
+      ],
+      "faces": {
+        "north": {
+          "texture": "#red_paint",
+          "uv": [
+            7.75,
+            3.0,
+            8.25,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#red_paint",
+          "uv": [
+            7.75,
+            3.0,
+            8.25,
+            4.0
+          ]
+        },
+        "east": {
+          "texture": "#red_paint",
+          "uv": [
+            7.75,
+            3.0,
+            8.25,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#red_paint",
+          "uv": [
+            7.75,
+            3.0,
+            8.25,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#red_paint",
+          "uv": [
+            7.75,
+            7.75,
+            8.25,
+            8.25
+          ]
+        }
+      }
+    }
+  ],
+  "display": {
+    "gui": {
+      "rotation": [
+        30,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.625,
+        0.625,
+        0.625
+      ]
+    },
+    "ground": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        3,
+        0
+      ],
+      "scale": [
+        0.25,
+        0.25,
+        0.25
+      ]
+    },
+    "fixed": {
+      "rotation": [
+        0,
+        0,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.5,
+        0.5,
+        0.5
+      ]
+    },
+    "thirdperson_righthand": {
+      "rotation": [
+        75,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        2.5,
+        0
+      ],
+      "scale": [
+        0.375,
+        0.375,
+        0.375
+      ]
+    },
+    "firstperson_righthand": {
+      "rotation": [
+        0,
+        45,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    },
+    "firstperson_lefthand": {
+      "rotation": [
+        0,
+        225,
+        0
+      ],
+      "translation": [
+        0,
+        0,
+        0
+      ],
+      "scale": [
+        0.4,
+        0.4,
+        0.4
+      ]
+    }
+  }
+}

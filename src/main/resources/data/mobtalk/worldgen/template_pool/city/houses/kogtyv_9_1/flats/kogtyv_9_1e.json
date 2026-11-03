@@ -1,0 +1,69 @@
+{
+  "name": "mobtalk:city/houses/kogtyv_9_1/flats/kogtyv_9_1e",
+  "fallback": "mobtalk:city/houses/kogtyv_9_1/flats/kogtyv_9_1e",
+  "elements": [
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/flats/flats_small_c_a",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/flats/flats_small_c_b",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/flats/flats_small_c_c",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/flats/flats_small_c_d",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/flats/flats_small_c_e",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/flats/flats_small_c_f",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    },
+    {
+      "weight": 100,
+      "element": {
+        "location": "mobtalk:city/houses/kogtyv_9_1/flats/flats_small_c_g",
+        "processors": "mobtalk:city/set_air_flats",
+        "projection": "rigid",
+        "element_type": "minecraft:single_pool_element"
+      }
+    }
+  ]
+}

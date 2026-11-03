@@ -1,0 +1,315 @@
+{
+ "textures": {
+  "pipe": "mobtalk:block/city2/fence/chainlink_green_pipe",
+  "fill": "mobtalk:block/city2/fence/chainlink_green_mesh_middle",
+  "particle": "mobtalk:block/city2/fence/chainlink_green_pipe"
+ },
+ "elements": [
+  {
+   "from": [
+    14.25,
+    0,
+    6
+   ],
+   "to": [
+    15.75,
+    15,
+    7.5
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    }
+   }
+  },
+  {
+   "from": [
+    14.25,
+    0,
+    -7.5
+   ],
+   "to": [
+    15.75,
+    15,
+    -6
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      15
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    }
+   }
+  },
+  {
+   "from": [
+    14.25,
+    13.5,
+    -6
+   ],
+   "to": [
+    15.75,
+    15,
+    6
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      12,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      12,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      12
+     ],
+     "texture": "#pipe"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      1.5,
+      12
+     ],
+     "texture": "#pipe"
+    }
+   }
+  },
+  {
+   "from": [
+    14.0,
+    10.5,
+    7.5
+   ],
+   "to": [
+    16.0,
+    12,
+    8
+   ],
+   "faces": {
+    "north": {
+     "uv": [
+      0,
+      0,
+      2.0,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "south": {
+     "uv": [
+      0,
+      0,
+      2.0,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "east": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "west": {
+     "uv": [
+      0,
+      0,
+      0.5,
+      1.5
+     ],
+     "texture": "#pipe"
+    },
+    "up": {
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.5
+     ],
+     "texture": "#pipe"
+    },
+    "down": {
+     "uv": [
+      0,
+      0,
+      2.0,
+      0.5
+     ],
+     "texture": "#pipe"
+    }
+   }
+  },
+  {
+   "from": [
+    15,
+    0,
+    -6
+   ],
+   "to": [
+    15,
+    13.5,
+    6
+   ],
+   "shade": true,
+   "faces": {
+    "east": {
+     "uv": [
+      2,
+      2.5,
+      14,
+      16
+     ],
+     "texture": "#fill"
+    },
+    "west": {
+     "uv": [
+      14,
+      2.5,
+      2,
+      16
+     ],
+     "texture": "#fill"
+    }
+   }
+  }
+ ],
+ "ambientocclusion": false
+}

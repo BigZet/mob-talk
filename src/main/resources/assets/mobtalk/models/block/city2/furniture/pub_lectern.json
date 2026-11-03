@@ -1,0 +1,128 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_lectern_lectern_front_44": "mobtalk:block/city2/furniture/pub_lectern_lectern_front_44",
+    "walnut": "mobtalk:block/city2/furniture/walnut",
+    "particle": "mobtalk:block/city2/furniture/pub_lectern_lectern_front_44"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        14.0,
+        16.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_lectern_lectern_front_44",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        0.0,
+        2.5
+      ],
+      "to": [
+        14.5,
+        1.0,
+        13.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#walnut",
+          "uv": [
+            1.5,
+            15.0,
+            14.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#walnut",
+          "uv": [
+            1.5,
+            15.0,
+            14.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#walnut",
+          "uv": [
+            2.5,
+            15.0,
+            13.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#walnut",
+          "uv": [
+            2.5,
+            15.0,
+            13.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#walnut",
+          "uv": [
+            1.5,
+            2.5,
+            14.5,
+            13.5
+          ]
+        },
+        "down": {
+          "texture": "#walnut",
+          "uv": [
+            1.5,
+            2.5,
+            14.5,
+            13.5
+          ]
+        }
+      }
+    }
+  ]
+}

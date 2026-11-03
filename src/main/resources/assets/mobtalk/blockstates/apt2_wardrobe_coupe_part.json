@@ -1,0 +1,79 @@
+{
+  "variants": {
+    "facing=north,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p1"
+    },
+    "facing=north,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p2"
+    },
+    "facing=north,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p3"
+    },
+    "facing=north,part=4": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p4"
+    },
+    "facing=north,part=5": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p5"
+    },
+    "facing=east,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p1",
+      "y": 90
+    },
+    "facing=east,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p2",
+      "y": 90
+    },
+    "facing=east,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p3",
+      "y": 90
+    },
+    "facing=east,part=4": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p4",
+      "y": 90
+    },
+    "facing=east,part=5": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p5",
+      "y": 90
+    },
+    "facing=south,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p1",
+      "y": 180
+    },
+    "facing=south,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p2",
+      "y": 180
+    },
+    "facing=south,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p3",
+      "y": 180
+    },
+    "facing=south,part=4": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p4",
+      "y": 180
+    },
+    "facing=south,part=5": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p5",
+      "y": 180
+    },
+    "facing=west,part=1": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p1",
+      "y": 270
+    },
+    "facing=west,part=2": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p2",
+      "y": 270
+    },
+    "facing=west,part=3": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p3",
+      "y": 270
+    },
+    "facing=west,part=4": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p4",
+      "y": 270
+    },
+    "facing=west,part=5": {
+      "model": "mobtalk:block/city2/furniture/apt2_wardrobe_coupe_p5",
+      "y": 270
+    }
+  }
+}

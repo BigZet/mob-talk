@@ -1,0 +1,512 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_desk__mahogany_drawers_44": "mobtalk:block/city2/furniture/apt_desk__mahogany_drawers_44",
+    "apt_desk__mahogany__oak": "mobtalk:block/city2/furniture/apt_desk__mahogany__oak",
+    "apt_desk__mahogany_baize_44": "mobtalk:block/city2/furniture/apt_desk__mahogany_baize_44",
+    "books_stack": "mobtalk:block/city2/furniture/books_stack",
+    "paper": "mobtalk:block/city2/furniture/paper",
+    "ink": "mobtalk:block/city2/furniture/ink",
+    "apt_desk__mahogany__walnut": "mobtalk:block/city2/furniture/apt_desk__mahogany__walnut",
+    "brass": "mobtalk:block/city2/furniture/brass",
+    "globe": "mobtalk:block/city2/furniture/globe",
+    "particle": "mobtalk:block/city2/furniture/apt_desk__mahogany_drawers_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        12.0,
+        12.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_desk__mahogany_drawers_44",
+          "uv": [
+            4.0,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            0.0,
+            4.0,
+            12.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            1.0,
+            4.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            3.0,
+            4.0,
+            15.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            0.0,
+            3.0,
+            12.0,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        9.0,
+        14.0
+      ],
+      "to": [
+        16.0,
+        12.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            0.0,
+            4.0,
+            4.0,
+            7.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            12.0,
+            4.0,
+            16.0,
+            7.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            14.0,
+            4.0,
+            15.0,
+            7.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.0,
+        12.0,
+        2.0
+      ],
+      "to": [
+        16.0,
+        13.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            4.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            0.0,
+            3.0,
+            16.0,
+            4.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_desk__mahogany__oak",
+          "uv": [
+            2.0,
+            3.0,
+            16.0,
+            4.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_desk__mahogany_baize_44",
+          "uv": [
+            0.0,
+            2.0,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        14.0,
+        13.0,
+        10.0
+      ],
+      "to": [
+        16.0,
+        15.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#books_stack",
+          "uv": [
+            0.0,
+            1.0,
+            2.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#books_stack",
+          "uv": [
+            14.0,
+            1.0,
+            16.0,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#books_stack",
+          "uv": [
+            10.0,
+            1.0,
+            14.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#books_stack",
+          "uv": [
+            14.0,
+            10.0,
+            16.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        13.0,
+        4.0
+      ],
+      "to": [
+        8.0,
+        13.5,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#paper",
+          "uv": [
+            8.0,
+            2.5,
+            13.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#paper",
+          "uv": [
+            3.0,
+            2.5,
+            8.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#paper",
+          "uv": [
+            7.0,
+            2.5,
+            12.0,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#paper",
+          "uv": [
+            4.0,
+            2.5,
+            9.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#paper",
+          "uv": [
+            3.0,
+            4.0,
+            8.0,
+            9.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        9.0,
+        13.0,
+        10.0
+      ],
+      "to": [
+        10.5,
+        14.5,
+        11.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#ink",
+          "uv": [
+            5.5,
+            1.5,
+            7.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#ink",
+          "uv": [
+            9.0,
+            1.5,
+            10.5,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#ink",
+          "uv": [
+            4.5,
+            1.5,
+            6.0,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#ink",
+          "uv": [
+            10.0,
+            1.5,
+            11.5,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#ink",
+          "uv": [
+            9.0,
+            10.0,
+            10.5,
+            11.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        2.0,
+        13.0,
+        11.0
+      ],
+      "to": [
+        5.0,
+        14.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_desk__mahogany__walnut",
+          "uv": [
+            11.0,
+            2.0,
+            14.0,
+            3.0
+          ]
+        },
+        "south": {
+          "texture": "#apt_desk__mahogany__walnut",
+          "uv": [
+            2.0,
+            2.0,
+            5.0,
+            3.0
+          ]
+        },
+        "east": {
+          "texture": "#apt_desk__mahogany__walnut",
+          "uv": [
+            2.0,
+            2.0,
+            5.0,
+            3.0
+          ]
+        },
+        "west": {
+          "texture": "#apt_desk__mahogany__walnut",
+          "uv": [
+            11.0,
+            2.0,
+            14.0,
+            3.0
+          ]
+        },
+        "up": {
+          "texture": "#apt_desk__mahogany__walnut",
+          "uv": [
+            2.0,
+            11.0,
+            5.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.25,
+        14.0,
+        12.25
+      ],
+      "to": [
+        3.75,
+        16.0,
+        12.75
+      ],
+      "faces": {
+        "north": {
+          "texture": "#brass",
+          "uv": [
+            12.25,
+            0.0,
+            12.75,
+            2.0
+          ]
+        },
+        "south": {
+          "texture": "#brass",
+          "uv": [
+            3.25,
+            0.0,
+            3.75,
+            2.0
+          ]
+        },
+        "east": {
+          "texture": "#brass",
+          "uv": [
+            3.25,
+            0.0,
+            3.75,
+            2.0
+          ]
+        },
+        "west": {
+          "texture": "#brass",
+          "uv": [
+            12.25,
+            0.0,
+            12.75,
+            2.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        16.0,
+        10.5
+      ],
+      "to": [
+        5.5,
+        20.0,
+        14.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#globe",
+          "uv": [
+            10.5,
+            12.0,
+            14.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#globe",
+          "uv": [
+            1.5,
+            12.0,
+            5.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#globe",
+          "uv": [
+            1.5,
+            12.0,
+            5.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#globe",
+          "uv": [
+            10.5,
+            12.0,
+            14.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#globe",
+          "uv": [
+            1.5,
+            10.5,
+            5.5,
+            14.5
+          ]
+        },
+        "down": {
+          "texture": "#globe",
+          "uv": [
+            1.5,
+            1.5,
+            5.5,
+            5.5
+          ]
+        }
+      }
+    }
+  ]
+}

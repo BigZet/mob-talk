@@ -1,0 +1,141 @@
+{
+ "parent": "minecraft:block/block",
+ "textures": {
+  "o": "mobtalk:block/city2/panel_white_fade",
+  "s": "mobtalk:block/city2/panel_white",
+  "i": "mobtalk:block/city2/paper_green_mid",
+  "rv": "mobtalk:block/city2/plaster_mid",
+  "c": "mobtalk:block/city2/slab_side",
+  "particle": "mobtalk:block/city2/panel_white"
+ },
+ "elements": [
+  {
+   "from": [
+    0,
+    0,
+    0
+   ],
+   "to": [
+    16,
+    16,
+    6
+   ],
+   "faces": {
+    "north": {
+     "texture": "#o",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "cullface": "north"
+    },
+    "east": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "cullface": "east"
+    },
+    "west": {
+     "texture": "#s",
+     "uv": [
+      0,
+      0,
+      6,
+      16
+     ],
+     "cullface": "west"
+    },
+    "up": {
+     "texture": "#c",
+     "uv": [
+      0,
+      0,
+      16,
+      6
+     ],
+     "cullface": "up"
+    },
+    "down": {
+     "texture": "#c",
+     "uv": [
+      0,
+      0,
+      16,
+      6
+     ],
+     "cullface": "down"
+    }
+   }
+  },
+  {
+   "from": [
+    0,
+    0,
+    6
+   ],
+   "to": [
+    16,
+    16,
+    16
+   ],
+   "faces": {
+    "south": {
+     "texture": "#i",
+     "uv": [
+      0,
+      0,
+      16,
+      16
+     ],
+     "cullface": "south"
+    },
+    "east": {
+     "texture": "#rv",
+     "uv": [
+      6,
+      0,
+      16,
+      16
+     ],
+     "cullface": "east"
+    },
+    "west": {
+     "texture": "#rv",
+     "uv": [
+      6,
+      0,
+      16,
+      16
+     ],
+     "cullface": "west"
+    },
+    "up": {
+     "texture": "#c",
+     "uv": [
+      0,
+      6,
+      16,
+      16
+     ],
+     "cullface": "up"
+    },
+    "down": {
+     "texture": "#c",
+     "uv": [
+      0,
+      6,
+      16,
+      16
+     ],
+     "cullface": "down"
+    }
+   }
+  }
+ ]
+}

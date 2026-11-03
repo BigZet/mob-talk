@@ -1,0 +1,80 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "tube": "mobtalk:block/city/lamp_tube",
+    "m": "mobtalk:block/city/enamel",
+    "ip": "mobtalk:block/city/ipalette",
+    "particle": "mobtalk:block/city/lamp_tube"
+  },
+  "elements": [
+    {
+      "from": [
+        1.5,
+        14.5,
+        3
+      ],
+      "to": [
+        14.5,
+        16,
+        13
+      ],
+      "faces": {
+        "north": {
+          "texture": "#m",
+          "uv": [
+            1.5,
+            0,
+            14.5,
+            1.5
+          ]
+        },
+        "south": {
+          "texture": "#m",
+          "uv": [
+            1.5,
+            0,
+            14.5,
+            1.5
+          ]
+        },
+        "east": {
+          "texture": "#m",
+          "uv": [
+            3,
+            0,
+            13,
+            1.5
+          ]
+        },
+        "west": {
+          "texture": "#m",
+          "uv": [
+            3,
+            0,
+            13,
+            1.5
+          ]
+        },
+        "up": {
+          "texture": "#m",
+          "uv": [
+            1.5,
+            3,
+            14.5,
+            13
+          ]
+        },
+        "down": {
+          "texture": "#tube",
+          "uv": [
+            0,
+            0,
+            16,
+            16
+          ]
+        }
+      }
+    }
+  ],
+  "ambientocclusion": false
+}

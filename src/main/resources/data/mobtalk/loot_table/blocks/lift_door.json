@@ -1,0 +1,28 @@
+{
+ "type": "minecraft:block",
+ "pools": [
+  {
+   "rolls": 1,
+   "entries": [
+    {
+     "type": "minecraft:item",
+     "name": "mobtalk:lift_door",
+     "conditions": [
+      {
+       "condition": "minecraft:block_state_property",
+       "block": "mobtalk:lift_door",
+       "properties": {
+        "half": "lower"
+       }
+      }
+     ]
+    }
+   ],
+   "conditions": [
+    {
+     "condition": "minecraft:survives_explosion"
+    }
+   ]
+  }
+ ]
+}

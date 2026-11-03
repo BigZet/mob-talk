@@ -1,0 +1,110 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pill_box": "mobtalk:block/city2/furniture/pill_box",
+    "glass": "mobtalk:block/city2/furniture/glass",
+    "particle": "mobtalk:block/city2/furniture/pill_box"
+  },
+  "elements": [
+    {
+      "from": [
+        3.0,
+        0.0,
+        7.0
+      ],
+      "to": [
+        8.0,
+        5.0,
+        9.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pill_box",
+          "uv": [
+            8.0,
+            11.0,
+            13.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#pill_box",
+          "uv": [
+            3.0,
+            11.0,
+            8.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#pill_box",
+          "uv": [
+            7.0,
+            11.0,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#pill_box",
+          "uv": [
+            7.0,
+            11.0,
+            9.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#pill_box",
+          "uv": [
+            3.0,
+            7.0,
+            8.0,
+            9.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.5,
+        0.0,
+        11.75
+      ],
+      "to": [
+        16.0,
+        16.0,
+        12.25
+      ],
+      "faces": {
+        "north": {
+          "texture": "#glass",
+          "uv": [
+            0.0,
+            0.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#glass",
+          "uv": [
+            0.5,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#glass",
+          "uv": [
+            11.75,
+            0.0,
+            12.25,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt2_fridge_doors_43": "mobtalk:block/city2/furniture/apt2_fridge_doors_43",
+    "silver": "mobtalk:block/city2/furniture/silver",
+    "plastic_black": "mobtalk:block/city2/furniture/plastic_black",
+    "particle": "mobtalk:block/city2/furniture/apt2_fridge_doors_43"
+  },
+  "elements": [
+    {
+      "from": [
+        1.0,
+        0.0,
+        3.0
+      ],
+      "to": [
+        15.0,
+        14.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt2_fridge_doors_43",
+          "uv": [
+            1.0,
+            2.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#silver",
+          "uv": [
+            1.0,
+            2.0,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#silver",
+          "uv": [
+            0.5,
+            2.0,
+            13.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#silver",
+          "uv": [
+            3.0,
+            2.0,
+            15.5,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#silver",
+          "uv": [
+            1.0,
+            3.0,
+            15.0,
+            15.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        12.0,
+        3.0,
+        2.5
+      ],
+      "to": [
+        13.0,
+        12.0,
+        3.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#plastic_black",
+          "uv": [
+            3.0,
+            4.0,
+            4.0,
+            13.0
+          ]
+        },
+        "east": {
+          "texture": "#plastic_black",
+          "uv": [
+            13.0,
+            4.0,
+            13.5,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#plastic_black",
+          "uv": [
+            2.5,
+            4.0,
+            3.0,
+            13.0
+          ]
+        },
+        "up": {
+          "texture": "#plastic_black",
+          "uv": [
+            12.0,
+            2.5,
+            13.0,
+            3.0
+          ]
+        },
+        "down": {
+          "texture": "#plastic_black",
+          "uv": [
+            12.0,
+            13.0,
+            13.0,
+            13.5
+          ]
+        }
+      }
+    }
+  ]
+}

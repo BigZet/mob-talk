@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/apt_towel_rail"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/apt_towel_rail",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/apt_towel_rail",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/apt_towel_rail",
+      "y": 270
+    }
+  }
+}

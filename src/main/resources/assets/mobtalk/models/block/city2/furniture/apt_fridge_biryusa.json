@@ -1,0 +1,111 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "black": "mobtalk:block/city2/furniture/black",
+    "apt_fridge_biryusa_door_44": "mobtalk:block/city2/furniture/apt_fridge_biryusa_door_44",
+    "enamel_cream": "mobtalk:block/city2/furniture/enamel_cream",
+    "particle": "mobtalk:block/city2/furniture/black"
+  },
+  "elements": [
+    {
+      "from": [
+        3.5,
+        0.0,
+        5.5
+      ],
+      "to": [
+        12.5,
+        1.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#black",
+          "uv": [
+            3.5,
+            15.0,
+            12.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            3.5,
+            15.0,
+            12.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            1.0,
+            15.0,
+            10.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            5.5,
+            15.0,
+            15.0,
+            16.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        3.0,
+        1.0,
+        5.0
+      ],
+      "to": [
+        13.0,
+        16.0,
+        15.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_fridge_biryusa_door_44",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#enamel_cream",
+          "uv": [
+            3.0,
+            0.0,
+            13.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#enamel_cream",
+          "uv": [
+            0.5,
+            0.0,
+            11.0,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#enamel_cream",
+          "uv": [
+            5.0,
+            0.0,
+            15.5,
+            15.0
+          ]
+        }
+      }
+    }
+  ]
+}

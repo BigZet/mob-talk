@@ -1,0 +1,123 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_poster_abc_poster_abc_44": "mobtalk:block/city2/furniture/pub_poster_abc_poster_abc_44",
+    "pub_poster_abc_poster_abc_43": "mobtalk:block/city2/furniture/pub_poster_abc_poster_abc_43",
+    "board_frame": "mobtalk:block/city2/furniture/board_frame",
+    "particle": "mobtalk:block/city2/furniture/pub_poster_abc_poster_abc_44"
+  },
+  "elements": [
+    {
+      "from": [
+        1.0,
+        4.0,
+        15.25
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_poster_abc_poster_abc_44",
+          "uv": [
+            0.0,
+            0.0,
+            15.0,
+            12.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        1.0,
+        16.0,
+        15.25
+      ],
+      "to": [
+        16.0,
+        22.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_poster_abc_poster_abc_43",
+          "uv": [
+            0.0,
+            10.0,
+            15.0,
+            16.0
+          ]
+        }
+      },
+      "shade": false
+    },
+    {
+      "from": [
+        1.0,
+        4.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "west": {
+          "texture": "#board_frame",
+          "uv": [
+            15.5,
+            0.0,
+            16.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#board_frame",
+          "uv": [
+            1.0,
+            0.0,
+            16.0,
+            0.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        16.0,
+        15.5
+      ],
+      "to": [
+        16.0,
+        22.0,
+        16.0
+      ],
+      "faces": {
+        "west": {
+          "texture": "#board_frame",
+          "uv": [
+            15.5,
+            10.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#board_frame",
+          "uv": [
+            1.0,
+            15.5,
+            16.0,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

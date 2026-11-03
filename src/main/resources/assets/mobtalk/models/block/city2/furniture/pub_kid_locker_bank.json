@@ -1,0 +1,170 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "birch_ply": "mobtalk:block/city2/furniture/birch_ply",
+    "pub_kid_locker_bank_kglock_doors_44": "mobtalk:block/city2/furniture/pub_kid_locker_bank_kglock_doors_44",
+    "birch_ply_h": "mobtalk:block/city2/furniture/birch_ply_h",
+    "particle": "mobtalk:block/city2/furniture/birch_ply"
+  },
+  "elements": [
+    {
+      "from": [
+        0.0,
+        0.0,
+        4.0
+      ],
+      "to": [
+        1.5,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply",
+          "uv": [
+            14.5,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            0.0,
+            1.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            0.0,
+            12.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.0,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply",
+          "uv": [
+            0.0,
+            0.0,
+            1.5,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        3.0,
+        4.5
+      ],
+      "to": [
+        16.0,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_kid_locker_bank_kglock_doors_44",
+          "uv": [
+            0.0,
+            0.0,
+            14.5,
+            13.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply",
+          "uv": [
+            1.5,
+            0.0,
+            16.0,
+            13.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply",
+          "uv": [
+            4.5,
+            0.0,
+            16.0,
+            13.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.5,
+        2.0,
+        4.0
+      ],
+      "to": [
+        16.0,
+        3.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            0.0,
+            13.0,
+            14.5,
+            14.0
+          ]
+        },
+        "south": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            4.0,
+            13.0,
+            16.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            4.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#birch_ply_h",
+          "uv": [
+            1.5,
+            0.0,
+            16.0,
+            12.0
+          ]
+        }
+      }
+    }
+  ]
+}

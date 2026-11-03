@@ -1,0 +1,60 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "apt_notice_board_board_54": "mobtalk:block/city2/furniture/apt_notice_board_board_54",
+    "cork": "mobtalk:block/city2/furniture/cork",
+    "particle": "mobtalk:block/city2/furniture/apt_notice_board_board_54"
+  },
+  "elements": [
+    {
+      "from": [
+        8.0,
+        2.0,
+        15.0
+      ],
+      "to": [
+        16.0,
+        14.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#apt_notice_board_board_54",
+          "uv": [
+            0.0,
+            2.0,
+            8.0,
+            14.0
+          ]
+        },
+        "west": {
+          "texture": "#cork",
+          "uv": [
+            15.0,
+            2.0,
+            16.0,
+            14.0
+          ]
+        },
+        "up": {
+          "texture": "#cork",
+          "uv": [
+            8.0,
+            15.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#cork",
+          "uv": [
+            8.0,
+            0.0,
+            16.0,
+            1.0
+          ]
+        }
+      }
+    }
+  ]
+}

@@ -29,6 +29,10 @@
     "CommandFilterMixin",
     "VillageSpawnMixin",
     "GuardPanicMixin",
+    "StructureSetAccessor",
+    "CityTreesMixin",
+    "CityBiomeMixin",
+    "CityChunkMixin",
     "ZombieConversionMixin",
     "VillagerRiderMixin",
     "VillagerRiderFacingMixin",
@@ -42,7 +46,8 @@
     "RoadTripSuffocationMixin",
     "ChunkHoldersAccessor",
     "ChunkClaimsAtShutdownMixin",
-    "ChunkSavingAtShutdownMixin"
+    "ChunkSavingAtShutdownMixin",
+    "LiftRiderMixin"
   ],
   "injectors": {
     "defaultRequire": 1

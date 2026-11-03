@@ -1,0 +1,77 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "steel_counter_v": "mobtalk:block/city2/furniture/steel_counter_v",
+    "particle": "mobtalk:block/city2/furniture/steel_counter_v"
+  },
+  "elements": [
+    {
+      "from": [
+        6.0,
+        0.0,
+        7.0
+      ],
+      "to": [
+        10.0,
+        2.0,
+        11.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            6.0,
+            14.0,
+            10.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            6.0,
+            14.0,
+            10.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            5.0,
+            14.0,
+            9.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            7.0,
+            14.0,
+            11.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            6.0,
+            7.0,
+            10.0,
+            11.0
+          ]
+        },
+        "down": {
+          "texture": "#steel_counter_v",
+          "uv": [
+            6.0,
+            5.0,
+            10.0,
+            9.0
+          ]
+        }
+      }
+    }
+  ]
+}

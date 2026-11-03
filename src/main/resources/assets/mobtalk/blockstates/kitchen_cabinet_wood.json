@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city/kitchen_cabinet_wood"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city/kitchen_cabinet_wood",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city/kitchen_cabinet_wood",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city/kitchen_cabinet_wood",
+      "y": 270
+    }
+  }
+}

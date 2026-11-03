@@ -110,9 +110,32 @@ public final class Structures {
             Map.entry("omdyzr", "зал"), Map.entry("omdzr", "зал"), Map.entry("omentry", "вход"), Map.entry("ompenthouse", "верхний зал"),
             Map.entry("omsimple", "зал"), Map.entry("omsimplet", "зал"), Map.entry("omwr", "крыло"), Map.entry("btp", "клад"));
 
+    /** Mob Talk's cities (tools/city: Soviet panel blocks after kogtyv-Towny and Village) by the part after "city_". */
+    private static final Map<String, String> CITIES = Map.of("small", "город пятиэтажек", "mix", "город", "brick", "кирпичный город",
+            "ninth", "город девятиэтажек");
+
+    /** The pieces of a city by their template path under "city/", most specific first; the imported names are the author's own
+     * (Polish and Ukrainian words among them), so each needs its Russian one. */
+    private static final String[][] CITY_WORDS = {
+            {"hospital_street", "улица"}, {"hospital", "больница"}, {"admin_centre", "администрация"}, {"meriya", "администрация"},
+            {"rada", "администрация"}, {"laboratory", "лаборатория"}, {"libr", "библиотека"}, {"drukarnia", "типография"},
+            {"kozhzavod", "кожевенный завод"}, {"zavod", "завод"}, {"factory", "завод"}, {"dining_hall", "столовая"},
+            {"minirestaurant", "кафе"}, {"tavern", "пивная"}, {"furniture_market", "мебельный магазин"}, {"largemarket", "универмаг"},
+            {"large_store", "универмаг"}, {"cartograph", "магазин карт"}, {"atelier", "ателье"}, {"fisher", "рыбный магазин"},
+            {"sheperd", "ткацкая фабрика"}, {"stonecutter", "камнерезная мастерская"}, {"shop", "магазин"}, {"market", "рынок"},
+            {"rynek", "рыночная площадь"}, {"rondo", "площадь с клумбой"}, {"victory", "площадь Победы"}, {"memorial", "мемориал"},
+            {"obelisk", "обелиск"}, {"fontan", "фонтан"}, {"statu", "памятник"}, {"altanka", "беседка"}, {"aleye", "аллея"},
+            {"park", "сквер"}, {"1year", "сквер"}, {"street", "улица"}, {"road", "улица"}, {"sidewalk", "улица"}, {"cross", "улица"},
+            {"fundament", "фундамент"}, {"paraped", "крыша"}, {"villagers", "улица"}, {"barak", "барак"}, {"stalin", "сталинка"},
+            {"svechka", "шестнадцатиэтажка"}, {"candle", "шестнадцатиэтажка"}, {"sixteen", "шестнадцатиэтажка"},
+            {"bryezhnyevka", "брежневка"}, {"p3basya_7", "семиэтажка"}, {"9", "девятиэтажка"}, {"ninth", "девятиэтажка"},
+            {"5", "хрущёвка"}, {"fifth", "хрущёвка"}, {"fifs", "хрущёвка"}, {"fifrh", "хрущёвка"}, {"red_brick", "кирпичный дом"},
+            {"furniture", "квартира"}, {"flats", "квартира"}, {"houses/", "жилой дом"}, {"works/", "предприятие"}, {"centre/", "площадь"},
+            {"center", "площадь"}};
+
     /** Pieces that are ground rather than a place: streets, lamps, decorations. Named when the creature stands on them, never listed as "nearby". */
     private static final Set<String> MINOR = Set.of("улица", "фонарь", "украшение", "дорога", "поленница", "мишени", "площадка",
-            "скамейка", "повозка", "костёр");
+            "скамейка", "повозка", "костёр", "фундамент", "крыша");
 
     /** "village/plains/" or "pillager_outpost/mesa/" in front of a deeper path: the biome folder, whose name says nothing about the
      * piece and can fool the word search ("halloween" holds "well"). Two-level vanilla paths such as "pillager_outpost/watchtower" stay. */
@@ -126,6 +149,7 @@ public final class Structures {
         String path = path(structure), last = path.substring(path.lastIndexOf('/') + 1);
         String known = STRUCTURES.get(last);
         if (known != null) return known;
+        if (city(structure)) return CITIES.getOrDefault(last.substring(5), "город");
         if (village(structure)) {
             String kind = VILLAGES.getOrDefault(last.length() > 8 ? last.substring(8) : "", "деревня");
             return path.startsWith("large/") ? "большая " + kind : path.startsWith("small/") ? "маленькая " + kind : kind;
@@ -139,7 +163,12 @@ public final class Structures {
     /** Whether the structure is a village of vanilla or of a mod that names its villages the same way ("ctov:small/village_taiga"). */
     public static boolean village(String structure) {
         String path = path(structure), last = path.substring(path.lastIndexOf('/') + 1);
-        return last.startsWith("village_") || last.equals("village");
+        return last.startsWith("village_") || last.equals("village") || city(structure);
+    }
+
+    /** Whether the structure is one of Mob Talk's cities ("mobtalk:city_mix"); a city counts as a village everywhere else. */
+    public static boolean city(String structure) {
+        return bare(structure).startsWith("mobtalk:city_");
     }
 
     /** The id without its namespace, lower case: "large/village_plains". */
@@ -150,6 +179,11 @@ public final class Structures {
 
     /** "кузница", "коридор"; null when nothing more specific than the structure itself is known. */
     public static String pieceName(String pieceType, String template) {
+        if (template != null && bare(template).startsWith("mobtalk:city/")) {
+            String city = path(template).substring(5);
+            for (String[] word : CITY_WORDS) if (city.contains(word[0])) return word[1];
+            return null;
+        }
         String path = template == null ? "" : KIND_FOLDER.matcher(path(template)).replaceFirst("");
         if (!path.isEmpty()) {
             if (path.startsWith("zombie/")) path = path.substring(7);

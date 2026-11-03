@@ -1,0 +1,147 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "front": "mobtalk:block/city/fridge_lower",
+    "side": "mobtalk:block/city/enamel",
+    "ip": "mobtalk:block/city/ipalette",
+    "particle": "mobtalk:block/city/fridge_lower"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        0,
+        3
+      ],
+      "to": [
+        14,
+        1,
+        15
+      ],
+      "faces": {
+        "north": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            8,
+            2,
+            10
+          ]
+        },
+        "south": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            8,
+            2,
+            10
+          ]
+        },
+        "east": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            8,
+            2,
+            10
+          ]
+        },
+        "west": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            8,
+            2,
+            10
+          ]
+        },
+        "up": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            8,
+            2,
+            10
+          ]
+        },
+        "down": {
+          "texture": "#ip",
+          "uv": [
+            0,
+            8,
+            2,
+            10
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1,
+        1,
+        1.5
+      ],
+      "to": [
+        15,
+        16,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#front",
+          "uv": [
+            1,
+            0,
+            15,
+            15
+          ]
+        },
+        "south": {
+          "texture": "#side",
+          "uv": [
+            1,
+            0,
+            15,
+            15
+          ]
+        },
+        "east": {
+          "texture": "#side",
+          "uv": [
+            1.5,
+            0,
+            16,
+            15
+          ]
+        },
+        "west": {
+          "texture": "#side",
+          "uv": [
+            1.5,
+            0,
+            16,
+            15
+          ]
+        },
+        "up": {
+          "texture": "#side",
+          "uv": [
+            1,
+            1.5,
+            15,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#side",
+          "uv": [
+            1,
+            1.5,
+            15,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

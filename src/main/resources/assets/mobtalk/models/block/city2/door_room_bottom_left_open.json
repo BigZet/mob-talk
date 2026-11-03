@@ -1,0 +1,8 @@
+{
+ "parent": "minecraft:block/door_bottom_left_open",
+ "textures": {
+  "bottom": "mobtalk:block/city2/door_room_bottom",
+  "top": "mobtalk:block/city2/door_room_top",
+  "particle": "mobtalk:block/city2/door_room_bottom"
+ }
+}

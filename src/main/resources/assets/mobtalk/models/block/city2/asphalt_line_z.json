@@ -1,0 +1,9 @@
+{
+ "parent": "minecraft:block/cube_bottom_top",
+ "textures": {
+  "top": "mobtalk:block/city2/asphalt_line_z",
+  "bottom": "mobtalk:block/city2/asphalt",
+  "side": "mobtalk:block/city2/asphalt",
+  "particle": "mobtalk:block/city2/asphalt"
+ }
+}

@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city/sofa_right_blue"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city/sofa_right_blue",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city/sofa_right_blue",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city/sofa_right_blue",
+      "y": 270
+    }
+  }
+}

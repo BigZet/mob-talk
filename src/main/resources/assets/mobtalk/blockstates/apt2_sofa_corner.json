@@ -1,0 +1,19 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "mobtalk:block/city2/furniture/apt2_sofa_corner"
+    },
+    "facing=east": {
+      "model": "mobtalk:block/city2/furniture/apt2_sofa_corner",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "mobtalk:block/city2/furniture/apt2_sofa_corner",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "mobtalk:block/city2/furniture/apt2_sofa_corner",
+      "y": 270
+    }
+  }
+}

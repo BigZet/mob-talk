@@ -1,0 +1,79 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "front": "mobtalk:block/city/cup_wood_front",
+    "side": "mobtalk:block/city/veneer_light",
+    "ip": "mobtalk:block/city/ipalette",
+    "particle": "mobtalk:block/city/cup_wood_front"
+  },
+  "elements": [
+    {
+      "from": [
+        0,
+        2,
+        8.5
+      ],
+      "to": [
+        16,
+        14,
+        16
+      ],
+      "faces": {
+        "north": {
+          "texture": "#front",
+          "uv": [
+            0,
+            2,
+            16,
+            14
+          ]
+        },
+        "south": {
+          "texture": "#side",
+          "uv": [
+            0,
+            2,
+            16,
+            14
+          ]
+        },
+        "east": {
+          "texture": "#side",
+          "uv": [
+            8.5,
+            2,
+            16,
+            14
+          ]
+        },
+        "west": {
+          "texture": "#side",
+          "uv": [
+            8.5,
+            2,
+            16,
+            14
+          ]
+        },
+        "up": {
+          "texture": "#side",
+          "uv": [
+            0,
+            8.5,
+            16,
+            16
+          ]
+        },
+        "down": {
+          "texture": "#side",
+          "uv": [
+            0,
+            8.5,
+            16,
+            16
+          ]
+        }
+      }
+    }
+  ]
+}

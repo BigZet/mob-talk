@@ -1,0 +1,129 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "pub_portrait_tolstoy_portrait_tolstoy_44": "mobtalk:block/city2/furniture/pub_portrait_tolstoy_portrait_tolstoy_44",
+    "black": "mobtalk:block/city2/furniture/black",
+    "pub_portrait_tolstoy_portrait_tolstoy_43": "mobtalk:block/city2/furniture/pub_portrait_tolstoy_portrait_tolstoy_43",
+    "particle": "mobtalk:block/city2/furniture/pub_portrait_tolstoy_portrait_tolstoy_44"
+  },
+  "elements": [
+    {
+      "from": [
+        0.5,
+        0.0,
+        15.25
+      ],
+      "to": [
+        15.5,
+        16.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_portrait_tolstoy_portrait_tolstoy_44",
+          "uv": [
+            0.5,
+            0.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            0.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            0.0,
+            0.0,
+            0.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            15.25,
+            0.0,
+            16.0,
+            16.0
+          ]
+        },
+        "down": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            0.0,
+            15.5,
+            0.75
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        0.5,
+        16.0,
+        15.25
+      ],
+      "to": [
+        15.5,
+        20.0,
+        16.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#pub_portrait_tolstoy_portrait_tolstoy_43",
+          "uv": [
+            0.5,
+            12.0,
+            15.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            12.0,
+            15.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#black",
+          "uv": [
+            0.0,
+            12.0,
+            0.75,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#black",
+          "uv": [
+            15.25,
+            12.0,
+            16.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#black",
+          "uv": [
+            0.5,
+            15.25,
+            15.5,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

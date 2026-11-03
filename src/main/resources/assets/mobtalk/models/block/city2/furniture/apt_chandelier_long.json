@@ -1,0 +1,238 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "stucco": "mobtalk:block/city2/furniture/stucco",
+    "stucco_shadow": "mobtalk:block/city2/furniture/stucco_shadow",
+    "bronze": "mobtalk:block/city2/furniture/bronze",
+    "particle": "mobtalk:block/city2/furniture/stucco"
+  },
+  "elements": [
+    {
+      "from": [
+        2.0,
+        15.5,
+        2.0
+      ],
+      "to": [
+        14.0,
+        16.0,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#stucco",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            0.5
+          ]
+        },
+        "south": {
+          "texture": "#stucco",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            0.5
+          ]
+        },
+        "east": {
+          "texture": "#stucco",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            0.5
+          ]
+        },
+        "west": {
+          "texture": "#stucco",
+          "uv": [
+            2.0,
+            0.0,
+            14.0,
+            0.5
+          ]
+        },
+        "down": {
+          "texture": "#stucco",
+          "uv": [
+            2.0,
+            2.0,
+            14.0,
+            14.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        4.0,
+        15.0,
+        4.0
+      ],
+      "to": [
+        12.0,
+        15.5,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#stucco_shadow",
+          "uv": [
+            4.0,
+            0.5,
+            12.0,
+            1.0
+          ]
+        },
+        "south": {
+          "texture": "#stucco_shadow",
+          "uv": [
+            4.0,
+            0.5,
+            12.0,
+            1.0
+          ]
+        },
+        "east": {
+          "texture": "#stucco_shadow",
+          "uv": [
+            4.0,
+            0.5,
+            12.0,
+            1.0
+          ]
+        },
+        "west": {
+          "texture": "#stucco_shadow",
+          "uv": [
+            4.0,
+            0.5,
+            12.0,
+            1.0
+          ]
+        },
+        "down": {
+          "texture": "#stucco_shadow",
+          "uv": [
+            4.0,
+            4.0,
+            12.0,
+            12.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        6.5,
+        14.25,
+        6.5
+      ],
+      "to": [
+        9.5,
+        15.0,
+        9.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bronze",
+          "uv": [
+            6.5,
+            1.0,
+            9.5,
+            1.75
+          ]
+        },
+        "south": {
+          "texture": "#bronze",
+          "uv": [
+            6.5,
+            1.0,
+            9.5,
+            1.75
+          ]
+        },
+        "east": {
+          "texture": "#bronze",
+          "uv": [
+            6.5,
+            1.0,
+            9.5,
+            1.75
+          ]
+        },
+        "west": {
+          "texture": "#bronze",
+          "uv": [
+            6.5,
+            1.0,
+            9.5,
+            1.75
+          ]
+        },
+        "down": {
+          "texture": "#bronze",
+          "uv": [
+            6.5,
+            6.5,
+            9.5,
+            9.5
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        7.5,
+        0.0,
+        7.5
+      ],
+      "to": [
+        8.5,
+        14.25,
+        8.5
+      ],
+      "faces": {
+        "north": {
+          "texture": "#bronze",
+          "uv": [
+            7.5,
+            1.75,
+            8.5,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#bronze",
+          "uv": [
+            7.5,
+            1.75,
+            8.5,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#bronze",
+          "uv": [
+            7.5,
+            1.75,
+            8.5,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#bronze",
+          "uv": [
+            7.5,
+            1.75,
+            8.5,
+            16.0
+          ]
+        }
+      }
+    }
+  ]
+}

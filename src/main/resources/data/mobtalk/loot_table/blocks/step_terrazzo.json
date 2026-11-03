@@ -1,0 +1,30 @@
+{
+ "type": "minecraft:block",
+ "pools": [
+  {
+   "rolls": 1,
+   "entries": [
+    {
+     "type": "minecraft:item",
+     "name": "mobtalk:step_terrazzo",
+     "functions": [
+      {
+       "function": "minecraft:set_count",
+       "count": 2,
+       "add": false,
+       "conditions": [
+        {
+         "condition": "minecraft:block_state_property",
+         "block": "mobtalk:step_terrazzo",
+         "properties": {
+          "type": "double"
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

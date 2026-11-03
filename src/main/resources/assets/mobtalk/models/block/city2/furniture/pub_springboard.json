@@ -1,0 +1,301 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "gym_wood_h": "mobtalk:block/city2/furniture/gym_wood_h",
+    "rubber_black": "mobtalk:block/city2/furniture/rubber_black",
+    "gym_wood": "mobtalk:block/city2/furniture/gym_wood",
+    "particle": "mobtalk:block/city2/furniture/gym_wood_h"
+  },
+  "elements": [
+    {
+      "from": [
+        1.0,
+        0.0,
+        1.0
+      ],
+      "to": [
+        15.0,
+        1.0,
+        12.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            15.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            15.0,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            4.0,
+            15.0,
+            15.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            15.0,
+            12.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            1.0,
+            15.0,
+            12.0
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            4.0,
+            15.0,
+            15.0
+          ]
+        }
+      }
+    },
+    {
+      "from": [
+        1.0,
+        1.0,
+        0.0
+      ],
+      "to": [
+        15.0,
+        2.5,
+        14.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            13.5,
+            15.0,
+            15.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            13.5,
+            15.0,
+            15.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            2.0,
+            13.5,
+            16.0,
+            15.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            0.0,
+            13.5,
+            14.0,
+            15.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            0.0,
+            15.0,
+            14.0
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood_h",
+          "uv": [
+            1.0,
+            2.0,
+            15.0,
+            16.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          1,
+          0
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        2.0,
+        2.5,
+        8.0
+      ],
+      "to": [
+        14.0,
+        3.0,
+        13.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#rubber_black",
+          "uv": [
+            2.0,
+            13.0,
+            14.0,
+            13.5
+          ]
+        },
+        "south": {
+          "texture": "#rubber_black",
+          "uv": [
+            2.0,
+            13.0,
+            14.0,
+            13.5
+          ]
+        },
+        "east": {
+          "texture": "#rubber_black",
+          "uv": [
+            3.0,
+            13.0,
+            8.0,
+            13.5
+          ]
+        },
+        "west": {
+          "texture": "#rubber_black",
+          "uv": [
+            8.0,
+            13.0,
+            13.0,
+            13.5
+          ]
+        },
+        "up": {
+          "texture": "#rubber_black",
+          "uv": [
+            2.0,
+            8.0,
+            14.0,
+            13.0
+          ]
+        },
+        "down": {
+          "texture": "#rubber_black",
+          "uv": [
+            2.0,
+            3.0,
+            14.0,
+            8.0
+          ]
+        }
+      },
+      "rotation": {
+        "origin": [
+          8,
+          1,
+          0
+        ],
+        "axis": "x",
+        "angle": -22.5
+      }
+    },
+    {
+      "from": [
+        1.0,
+        0.0,
+        12.0
+      ],
+      "to": [
+        15.0,
+        5.0,
+        15.0
+      ],
+      "faces": {
+        "north": {
+          "texture": "#gym_wood",
+          "uv": [
+            1.0,
+            11.0,
+            15.0,
+            16.0
+          ]
+        },
+        "south": {
+          "texture": "#gym_wood",
+          "uv": [
+            1.0,
+            11.0,
+            15.0,
+            16.0
+          ]
+        },
+        "east": {
+          "texture": "#gym_wood",
+          "uv": [
+            1.0,
+            11.0,
+            4.0,
+            16.0
+          ]
+        },
+        "west": {
+          "texture": "#gym_wood",
+          "uv": [
+            12.0,
+            11.0,
+            15.0,
+            16.0
+          ]
+        },
+        "up": {
+          "texture": "#gym_wood",
+          "uv": [
+            1.0,
+            12.0,
+            15.0,
+            15.0
+          ]
+        },
+        "down": {
+          "texture": "#gym_wood",
+          "uv": [
+            1.0,
+            1.0,
+            15.0,
+            4.0
+          ]
+        }
+      }
+    }
+  ]
+}
