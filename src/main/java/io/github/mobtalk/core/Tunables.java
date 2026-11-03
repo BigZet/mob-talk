@@ -327,7 +327,8 @@ public final class Tunables {
         reset(config, section);
         MobTalkConfig d = DEFAULTS;
         switch (section) {
-            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.labelsMoodFace = d.labelsMoodFace; config.humanVillagers = d.humanVillagers; }
+            case GENERAL -> { config.enabled = d.enabled; config.vision = d.vision; config.showStateHud = d.showStateHud; config.showBargainHud = d.showBargainHud; config.showNameTags = d.showNameTags; config.labelsMoodFace = d.labelsMoodFace; config.humanVillagers = d.humanVillagers;
+                config.overlayEnabled = d.overlayEnabled; config.overlayShowMe = d.overlayShowMe; config.overlayPort = d.overlayPort; config.overlaySubtitles = d.overlaySubtitles; config.overlayGod = d.overlayGod; config.overlayMercy = d.overlayMercy; config.overlayNow = d.overlayNow; config.overlayHeard = d.overlayHeard; config.overlayChatter = d.overlayChatter; config.overlayReduceMotion = d.overlayReduceMotion; config.overlayStyle = d.overlayStyle; config.overlayLayout = d.overlayLayout; }
             case VOICE -> {
                 config.whisperModel = d.whisperModel; config.whisperDevice = d.whisperDevice; config.whisperLanguage = d.whisperLanguage;
                 config.whisperAutoStart = d.whisperAutoStart; config.whisperUrl = d.whisperUrl; config.whisperHotwords = d.whisperHotwords;

@@ -142,7 +142,8 @@ final class VillageTowers {
         Saved saved = saved(world);
         for (Iterator<Build> it = saved.builds.iterator(); it.hasNext(); ) {
             Build build = it.next();
-            if (!world.isChunkLoaded(build.origin)) continue;
+            // The footprint plus the stand around it: foundation and place also reach past the checked centre chunk.
+            if (!world.isChunkLoaded(build.origin) || !loadedAround(world, build.origin, build.radius() + 2)) continue;
             if (now % POST_PERIOD == 7) attend(world, build, now);
             if (now < build.nextTick) continue;
             if (step(world, build, now)) { it.remove(); finished(world, build, zones); }
@@ -208,7 +209,7 @@ final class VillageTowers {
         for (int z = minZ + EDGE_STEP; z < maxZ; z += EDGE_STEP) { candidates.add(new BlockPos(minX, 0, z)); candidates.add(new BlockPos(maxX, 0, z)); }
         BlockPos best = null; double bestScore = -1;
         for (BlockPos spot : candidates) {
-            if (!world.isChunkLoaded(spot) || !zone.holds(spot.withY(zone.center().getY()))) continue;
+            if (!world.isChunkLoaded(spot) || !loadedAround(world, spot, radius + 1) || !zone.holds(spot.withY(zone.center().getY()))) continue;
             BlockPos floor = ground(world, spot, radius);
             if (floor == null) continue;
             double nearest = Double.MAX_VALUE;
@@ -219,6 +220,15 @@ final class VillageTowers {
             if (score > bestScore) { bestScore = score; best = floor; }
         }
         return best;
+    }
+
+    /** Every chunk under the tower's footprint (and the builder's stand around it) is loaded: reading an unloaded chunk would
+     * generate it right in the middle of the tick. */
+    private static boolean loadedAround(ServerWorld world, BlockPos spot, int reach) {
+        for (int dx = -reach; dx <= reach; dx += 2 * reach)
+            for (int dz = -reach; dz <= reach; dz += 2 * reach)
+                if (!world.isChunkLoaded(spot.add(dx, 0, dz))) return false;
+        return true;
     }
 
     /** The floor block of a tower centred here: the highest ground of the footprint (and the step before the door), when the ground

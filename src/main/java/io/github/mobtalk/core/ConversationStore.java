@@ -349,6 +349,9 @@ public final class ConversationStore {
             int facts = p.facts.size(), summaries = p.summaries.size();
             p.facts.removeIf(f -> stale.matcher(f.text()).find());
             p.summaries.removeIf(s -> stale.matcher(s.text()).find());
+            // A removed summary no longer covers its exchanges: the survivors must be summarised again, or they would be
+            // invisible to the model forever (unsummarizedFrom would point past them).
+            if (p.summaries.size() != summaries) p.summarizedTurns = p.turnsDropped;
             if (p.facts.size() != facts) p.memory = String.join("\n", p.facts.stream().map(MemoryFact::text).toList());
             gone += removed + facts - p.facts.size() + summaries - p.summaries.size();
         }

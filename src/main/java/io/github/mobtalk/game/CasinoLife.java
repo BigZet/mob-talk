@@ -306,6 +306,7 @@ public final class CasinoLife {
             if (visit.dimension != world.getRegistryKey()) continue;
             Entity entity = world.getEntity(visit.villager);
             if (!(entity instanceof VillagerEntity villager)) { unseat(world, visit); it.remove(); continue; }
+            if (!world.isChunkLoaded(visit.table)) { leave(world, villager, visit); it.remove(); continue; }
             if (!villager.isAlive() || villager.isSleeping() || villager.getAttacker() != null && villager.getAttacker().isAlive()
                     || visit.until > 0 && now > visit.until || visit.until == 0 && now - visit.started > WALK_LIMIT
                     || world.getBlockState(visit.table).isAir()) {

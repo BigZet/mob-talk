@@ -66,12 +66,15 @@ final class BarEvenings {
     }
 
     void tick(ServerWorld world) {
+        String dimension = world.getRegistryKey().getValue().toString();
         long time = world.getTime();
-        if (!enabled()) { if (!evenings.isEmpty()) for (String key : List.copyOf(evenings.keySet())) close(world, key); return; }
+        if (!enabled()) { if (!evenings.isEmpty()) for (String key : List.copyOf(evenings.keySet())) if (key.startsWith(dimension + "|")) close(world, key); return; }
         if (time % SCAN_PERIOD == SCAN_PHASE) scan(world);
         if (time % PERIOD != 0) return;
         boolean hours = open(world.getTimeOfDay(), bridge.config.barOpenHour, bridge.config.barCloseHour);
         for (Bar bar : List.copyOf(bars.values())) {
+            // Bars of other dimensions are scanned in their own world's tick: this world's coordinates mean nothing to them.
+            if (!bar.key().startsWith(dimension + "|")) continue;
             if (!world.isChunkLoaded(bar.center())) continue;
             boolean alarm = bridge.defense.alarmAt(world, bar.center()) != null;
             Evening evening = evenings.get(bar.key());
@@ -318,8 +321,10 @@ final class BarEvenings {
 
     /** For /mobtalk bar: the bars found around players and how their evenings go. */
     List<String> describe(ServerWorld world) {
+        String dimension = world.getRegistryKey().getValue().toString();
         List<String> out = new ArrayList<>();
         for (Bar bar : bars.values()) {
+            if (!bar.key().startsWith(dimension + "|")) continue;
             Evening evening = evenings.get(bar.key());
             long seated = evening == null ? 0 : evening.guests.keySet().stream().filter(id -> world.getEntity(id) instanceof VillagerEntity v && v.getVehicle() instanceof BarSeatEntity).count();
             out.add(bar.center().toShortString() + ": мест " + bar.seats().size() + ", стойка " + bar.counters().size()

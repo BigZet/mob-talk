@@ -220,6 +220,7 @@ public final class MobTalkMod implements ModInitializer {
         ready.completeExceptionally(new IllegalStateException("Сервер остановлен"));
         AdminLink.stop();
         io.github.mobtalk.game.CardTables.stopping(server);
+        io.github.mobtalk.game.CasinoLife.clear(); // Static visitors and trouble memories must not leak into the next world.
         DialogueService service = dialogue;
         dialogue = null;
         if (service != null) service.close();

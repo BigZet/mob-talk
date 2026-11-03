@@ -52,6 +52,9 @@ public final class MischiefWatch {
 
     MischiefWatch(MobGameBridge bridge) { this.bridge = bridge; }
 
+    /** The world is closing: forgotten grievances are not carried into the next one. */
+    void clearRuntime() { ledger.clear(); }
+
     /** Server-side block events: a right-click on a container, a block broken by the player. */
     public static void initialize() {
         if (registered) return;
