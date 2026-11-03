@@ -132,7 +132,9 @@ final class SelfTestBar {
             GlobalPos point = GlobalPos.create(world().getRegistryKey(), bar(6, 2, 22));
             test.server().execute(() -> { for (VillagerEntity v : villagers()) v.getBrain().remember(MemoryModuleType.MEETING_POINT, point); });
             test.command("setblock " + at(6, 2, 22) + " minecraft:bell[attachment=floor,facing=north]");
-            test.command("tp " + name() + " " + at(6, 3, 19) + " 180 10");
+            // Подальше от колокола: собравшиеся к нему жители, завидев игрока ближе 6 блоков, «присматриваются» к нему
+            // и на скане вечера выходят занятыми — вечеру не из кого набирать гостей (4 из 5, флак 2026-11-03/04).
+            test.command("tp " + name() + " " + at(6, 3, 30) + " 180 10");
             test.command("time set 11000"); // 17:00, the bar opens.
             evening();
         });
