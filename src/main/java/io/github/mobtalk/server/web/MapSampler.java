@@ -27,8 +27,8 @@ public final class MapSampler {
     public static final int PER_TICK = 2, AROUND = 4;
     private static final int RESCAN_TICKS = 600;
 
-    private final MapTiles tiles;
     private final Map<ServerWorld, Set<Long>> queue = new ConcurrentHashMap<>();
+    private volatile MapTiles tiles;
     private int ticks;
 
     private MapSampler(MapTiles tiles) { this.tiles = tiles; }
@@ -40,6 +40,10 @@ public final class MapSampler {
         ServerTickEvents.END_SERVER_TICK.register(sampler::tick);
         return sampler;
     }
+
+    /** A second server in the same JVM: the tick hooks stay (they cannot be removed), so point them at the new tiles —
+     * the closed painter would otherwise reject every update and kill the tick. */
+    public void retarget(MapTiles fresh) { tiles = fresh; }
 
     void enqueue(ServerWorld world, ChunkPos pos) {
         Set<Long> chunks = queue.computeIfAbsent(world, w -> new LinkedHashSet<>());

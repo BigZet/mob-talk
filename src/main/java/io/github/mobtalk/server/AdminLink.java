@@ -59,7 +59,14 @@ public final class AdminLink {
             @Override public void pauseAndFlush() throws Exception {
                 server.submit(() -> { for (ServerWorld world : server.getWorlds()) world.savingDisabled = true; server.saveAll(true, true, true); return null; }).get(60, TimeUnit.SECONDS);
             }
-            @Override public void resume() { server.execute(() -> { for (ServerWorld world : server.getWorlds()) world.savingDisabled = false; }); }
+            @Override public void resume() {
+                Runnable clear = () -> { for (ServerWorld world : server.getWorlds()) world.savingDisabled = false; };
+                // С потока сервера — сразу; иначе ждём выполнения: после выхода из тик-лупа очередь задач не работает,
+                // и «забытый» выключенный сейв потерял бы мир при /stop.
+                if (server.isOnThread()) { clear.run(); return; }
+                try { server.submit(() -> { clear.run(); return null; }).get(10, TimeUnit.SECONDS); }
+                catch (Exception stopping) { MobTalkMod.LOGGER.warn("Админка: не удалось вернуть автосохранение после бэкапа ({})", stopping.toString()); }
+            }
         };
         AdminWeb.Hooks hooks = new AdminWeb.Hooks(game, saver, server.getSavePath(WorldSavePath.ROOT), ServerConfig::get, ServerConfig::update,
                 SettingsScope::personal, AdminLink::limits);
@@ -83,6 +90,7 @@ public final class AdminLink {
         if (dialogue != null) dialogue.setJournal(new JournalAdapter(started.journal()));
         MobGameBridge.divineJournal((text, data) -> { try { started.journal().event("divine", null, null, text, data); } catch (RuntimeException failure) { MobTalkMod.LOGGER.warn("Админка: событие бога не записано ({})", failure.toString()); } });
         if (sampler == null) sampler = MapSampler.register(started.map());
+        else sampler.retarget(started.map()); // второй сервер в той же JVM: старый сэмплер в тике ссылался бы на закрытый MapTiles
         if (!hooked) {
             hooked = true;
             ServerTickEvents.END_SERVER_TICK.register(AdminLink::tick);
