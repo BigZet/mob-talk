@@ -31,6 +31,14 @@ public final class Rapport {
      * сыграна свадьба (реальные мс, −1 — не было). */
     String ring = "", witnessMan = "", witnessWoman = "";
     long weddingMillis = -1;
+    /** Меркантильная ({@link Mercantile}): с какой цены (изумруды) подарок её радует; когда принят последний дорогой подарок и
+     * откуда считается остывание (реальные мс, −1 — не было); кошелёк игрока, как она видела его в последний раз (−1 — не видела). */
+    int appetite = 1; long paidAt = -1, coolAt = -1; int wallet = -1;
+    /** Её ужин за его счёт: до какого времени идёт (−1 — нет), счёт в изумрудах; когда она «упорхнула» после оплаты (−1 — нет). */
+    long dinnerUntil = -1, dashedAt = -1; int bill;
+    /** Меркантильная: с какого времени вы вместе (для «годовщин»), когда она в последний раз сама клянчила, когда напомнила о
+     * годовщине и ждёт подарка (−1 — не ждёт); сколько годовщин уже отмечено. Реальные мс. */
+    long datingAt = -1, begAt = -1, anniversaryAt = -1; int anniversaries;
     public record Given(String item, long time) { }
     /** Ревность этой пары, создаётся при первом обращении. */
     public Jealousy jealousy() { if (jealousy == null) jealousy = new Jealousy(); return jealousy; }
@@ -94,12 +102,16 @@ public final class Rapport {
         if (courtship == null) courtship = "";
         if (jealousy != null) jealousy.sanitize();
         if (ring == null) ring = ""; if (witnessMan == null) witnessMan = ""; if (witnessWoman == null) witnessWoman = "";
+        appetite = Math.max(1, Math.min(1000, appetite));
     }
     Rapport copy() {
         Rapport c = new Rapport(); c.fatigue = fatigue; c.fatigueAt = fatigueAt; c.lastGesture = lastGesture; c.repeats = repeats;
         c.lastGestureAt = lastGestureAt; c.gifts = new ArrayList<>(gifts); c.forgetAt = forgetAt; c.courtship = courtship; c.lastChildMillis = lastChildMillis;
         c.jealousy = jealousy == null ? null : jealousy.copy();
         c.ring = ring; c.witnessMan = witnessMan; c.witnessWoman = witnessWoman; c.weddingMillis = weddingMillis;
+        c.appetite = appetite; c.paidAt = paidAt; c.coolAt = coolAt; c.wallet = wallet;
+        c.dinnerUntil = dinnerUntil; c.dashedAt = dashedAt; c.bill = bill;
+        c.datingAt = datingAt; c.begAt = begAt; c.anniversaryAt = anniversaryAt; c.anniversaries = anniversaries;
         return c;
     }
 }

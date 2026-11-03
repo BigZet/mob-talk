@@ -72,11 +72,11 @@
       "items": { "minecraft:netherite_ingot": 30, "minecraft:diamond": 25, "minecraft:gold_ingot": 25, "minecraft:emerald": 20, "minecraft:iron_ingot": 15,
                  "minecraft:amethyst_shard": 15, "minecraft:lapis_lazuli": 10, "minecraft:copper_ingot": 5, "minecraft:coal": 5, "minecraft:gold_nugget": 5,
                  "minecraft:golden_apple": 20, "minecraft:enchanted_golden_apple": 50, "minecraft:golden_carrot": 8 },
-      "bonuses": { "persona:GREEDY": 15 } },
+      "bonuses": { "persona:GREEDY": 15, "persona:MERCANTILE": 15 } },
     { "id": "treasure_blocks", "word": "драгоценный блок",
       "items": { "minecraft:netherite_block": 100, "minecraft:diamond_block": 80, "minecraft:emerald_block": 60, "minecraft:gold_block": 60, "minecraft:iron_block": 40,
                  "minecraft:lapis_block": 40, "minecraft:copper_block": 15, "minecraft:amethyst_block": 20 },
-      "bonuses": { "persona:GREEDY": 15 } },
+      "bonuses": { "persona:GREEDY": 15, "persona:MERCANTILE": 15 } },
     { "id": "books", "word": "книги",
       "items": { "minecraft:writable_book": 25, "minecraft:bookshelf": 20, "minecraft:book": 15, "minecraft:enchanted_book": 20 },
       "bonuses": { "profession:minecraft:librarian": 25, "child": -10 } },
@@ -97,6 +97,6 @@
                  "minecraft:music_disc_cat": 15, "minecraft:music_disc_pigstep": 20, "minecraft:music_disc_otherside": 20, "minecraft:obsidian": 10,
                  "minecraft:crafting_table": 10, "minecraft:furnace": 10, "minecraft:chest": 10, "minecraft:flower_pot": 5, "minecraft:name_tag": 15,
                  "minecraft:saddle": 15, "minecraft:lantern": 8, "minecraft:candle": 6 },
-      "bonuses": { "persona:GREEDY": 10, "child": 5, "profession:minecraft:fisherman": 5 } }
+      "bonuses": { "persona:GREEDY": 10, "persona:MERCANTILE": 10, "child": 5, "profession:minecraft:fisherman": 5 } }
   ]
 }

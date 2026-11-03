@@ -104,6 +104,9 @@ public final class ConversationStore {
                 r.ownerKnown = true; scheduleSave();
             }
         }
+        // Меркантильная: решается раз в жизни; кошелёк игрока на её взгляд и остывание без подарков — до копии для промпта.
+        if (Mercantile.roll(p, SocialLedger.adult(p, snapshot), Mercantile.city(snapshot), config) | Mercantile.observe(state, p, snapshot.playerId() == null ? null : p.relations.get(snapshot.playerId().toString()),
+                snapshot, config, System.currentTimeMillis())) scheduleSave();
         Profile detached = p.copy();
         detached.village = p.villageId == null || p.villageId.isBlank() ? null : state.villages.get(p.villageId);
         if (p.backstory.isBlank()) {
@@ -136,6 +139,87 @@ public final class ConversationStore {
         detached.stateView = p.state.view(rest, now);
         SocialLedger.prepare(state, p, detached, own, snapshot, detached.stateView, config, now, children);
         return detached;
+    }
+
+    /** Меркантильные горожанки, игровая сторона: житель попался на глаза — решить раз, меркантильна ли она; ответ — меркантильна ли
+     * сейчас (для наряда). */
+    public synchronized boolean mercantile(UUID mob, String name, boolean adult, boolean city, MobTalkConfig live) {
+        if (mob == null || !Mercantile.on(live) || !live.socialLayer) return false;
+        Profile p = ensure(mob, "minecraft:villager", name);
+        if (Mercantile.roll(p, adult, city, live)) scheduleSave(); // Доли — из живых настроек моста: память мира держит копию со старта.
+        return Mercantile.active(p);
+    }
+
+    /** Повод меркантильной самой заговорить с этим игроком (клянчит или напоминает о «годовщине»); null — молчит. */
+    public synchronized String mercantileBeg(UUID mob, UUID player, MobTalkConfig live) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
+        if (!Mercantile.active(p) || r == null || r.rapport == null) return null;
+        String reason = Mercantile.beg(r, live, System.currentTimeMillis());
+        if (reason != null) scheduleSave();
+        return reason;
+    }
+    /** Когда меркантильная в последний раз сама клянчила у этого игрока (реальные мс), −1 — не клянчила. */
+    public synchronized long mercantileBegAt(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
+        return r == null || r.rapport == null ? -1 : r.rapport.begAt;
+    }
+    /** Бросит ли меркантильная кого-то из ухажёров (давно не дарят) — чтобы игра искала ей богатого жителя только тогда. */
+    public synchronized boolean mercantileTired(UUID mob, MobTalkConfig live) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (!Mercantile.active(p) || state.family.married(p.id)) return false;
+        long now = System.currentTimeMillis();
+        return p.relations.values().stream().anyMatch(r -> Mercantile.tired(r.rapport, live, now));
+    }
+    /** Меркантильная уходит к богатому жителю {@code rich} ({@code work} — кто он, «мастер-кузнец»): уведомления брошенным игрокам. */
+    public synchronized Map<UUID, String> mercantileLeave(UUID mob, UUID rich, String richName, String work, MobTalkConfig live) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (!Mercantile.active(p) || rich == null) return Map.of();
+        Profile q = ensure(rich, "minecraft:villager", richName);
+        Map<UUID, String> notices = Mercantile.leave(state, p, q, work, live, System.currentTimeMillis());
+        if (!notices.isEmpty()) scheduleSave();
+        return notices;
+    }
+    /** Ужин-«тарелочница»: счёт идущего ужина этой меркантильной с игроком, 0 — ужина нет. */
+    public synchronized int dinnerBill(UUID mob, UUID player) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
+        return Mercantile.active(p) && r != null && Mercantile.dining(r.rapport, System.currentTimeMillis()) ? r.rapport.bill : 0;
+    }
+    /** Игрок зовёт меркантильную на ужин: строка для чата («согласилась, счёт …» или отказ); "" — она не меркантильна. */
+    public synchronized String startDinner(UUID mob, UUID player, String playerName, int wealth, MobTalkConfig live) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        if (!Mercantile.active(p) || player == null) return "";
+        Relation r = relation(p, player);
+        if (r.rapport == null) r.rapport = new Rapport();
+        long now = System.currentTimeMillis();
+        if (Mercantile.dining(r.rapport, now)) return "";
+        String refusal = Mercantile.startDinner(r.rapport, Mercantile.purse(wealth, live), now);
+        String name = displayName(mob);
+        if (!refusal.isEmpty()) { event(p, now, "Игрок " + TextBounds.characters(playerName, 60) + " звал тебя в ресторан, но он голодранец — ты " + refusal, 3); scheduleSave(); return name + " " + refusal + "."; }
+        event(p, now, "Игрок " + TextBounds.characters(playerName, 60) + " пригласил тебя в ресторан; ты заказала самое дорогое, счёт " + r.rapport.bill + " изумр.", 4);
+        p.revision++; scheduleSave();
+        return name + " согласна на ужин и уже заказала самое дорогое. Счёт: " + r.rapport.bill + " изумр. — скажите «я плачу», когда будете готовы (10 минут).";
+    }
+    /** Итог ужина: {@code paid} — изумруды взяты; {@code dash} — после оплаты она сразу ушла. Строка для чата. */
+    public synchronized String endDinner(UUID mob, UUID player, String playerName, boolean paid, boolean dash) {
+        Profile p = mob == null ? null : state.profiles.get(mob.toString());
+        Relation r = p == null || player == null ? null : p.relations.get(player.toString());
+        long now = System.currentTimeMillis();
+        if (!Mercantile.active(p) || r == null || !Mercantile.dining(r.rapport, now)) return "";
+        int bill = r.rapport.bill, hearts = Mercantile.endDinner(r.rapport, paid, dash, now);
+        r.score = clamp(r.score + hearts, hostile(p));
+        String who = TextBounds.characters(playerName, 60), name = displayName(mob);
+        if (!paid) Mercantile.gossip(state, p, player, who, Mercantile.Talk.STINGY, "не смог оплатить ужин в ресторане", now);
+        else if (!dash) Mercantile.gossip(state, p, player, who, Mercantile.Talk.GENEROUS, "сводил в ресторан и заплатил " + bill + " изумр.", now);
+        event(p, now, !paid ? "Игрок " + who + " не смог оплатить ужин (" + bill + " изумр.) — какой позор, ты в бешенстве; отношение " + r.score
+                : dash ? "Игрок " + who + " оплатил ужин (" + bill + " изумр.), а ты сразу упорхнула — «подруга позвонила»; отношение " + r.score
+                : "Игрок " + who + " оплатил ужин (" + bill + " изумр.) — ты довольна и мила; отношение " + r.score, 4);
+        p.revision++; scheduleSave();
+        return !paid ? name + " в ярости: денег не хватило (" + bill + " изумр.). (" + hearts + ")"
+                : dash ? "Счёт оплачен (" + bill + " изумр.). " + name + " доела десерт, ахнула «ой, подруга звонит!» и упорхнула. (+" + hearts + ")"
+                : "Счёт оплачен (" + bill + " изумр.). " + name + " сияет и держит вас под руку. (+" + hearts + ")";
     }
 
     /** The current emotional state as this player sees it, or null for a stranger; cheap enough for a tick loop. */
@@ -1576,6 +1660,8 @@ public final class ConversationStore {
         Map<String,String> players = new LinkedHashMap<>();
         /** What the villages know of the god's deeds (Б1); absent in files written before it. */
         DivineTidings divine = new DivineTidings();
+        /** Сплетни меркантильных о игроках ({@link Mercantile.Gossip}), ключ «деревня|игрок»; нет в файлах, записанных до них. */
+        Map<String, Mercantile.Gossip> mercGossip = new LinkedHashMap<>();
         /** The inspectors' open orders and who took envelopes (track «чиновники»); absent in files written before it. */
         Officialdom officials = new Officialdom();
         /** Исповедь: откат и епитимьи по игрокам; absent in files written before it. */
@@ -1583,6 +1669,9 @@ public final class ConversationStore {
         /** Игра в 21: кошельки, залог, итоги дня; absent in files written before it. */
         CardLedger.Book cards = new CardLedger.Book();
         void sanitize() {
+            if (mercGossip == null) mercGossip = new LinkedHashMap<>();
+            mercGossip.entrySet().removeIf(e -> e.getKey() == null || e.getValue() == null || e.getValue().player() == null || e.getValue().by() == null
+                    || e.getValue().talk() == null || e.getValue().playerName() == null || e.getValue().byName() == null || e.getValue().why() == null);
             if (confessions == null) confessions = new ConfessionLedger.Book();
             confessions.sanitize();
             if (officials == null) officials = new Officialdom();
@@ -1609,7 +1698,7 @@ public final class ConversationStore {
             State c = new State(); c.version = version; c.clockOffset = clockOffset;
             profiles.forEach((key, p) -> c.profiles.put(key, p.copy()));
             c.bargains.putAll(bargains); c.villages.putAll(villages); // Immutable records.
-            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy(); c.officials = officials.copy();
+            c.relations = relations.copy(); c.rumors = rumors.copy(); c.family = family.copy(); c.notices = notices.copy(); c.players = new LinkedHashMap<>(players); c.divine = divine.copy(); c.officials = officials.copy(); c.mercGossip = new LinkedHashMap<>(mercGossip);
             c.confessions = confessions.copy();
             c.cards = cards == null ? new CardLedger.Book() : cards.copy();
             return c;

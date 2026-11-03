@@ -146,6 +146,19 @@ public final class Tunables {
         integer("rivalGatherMinutes", s, "rivals", 1, 15, 1, c -> c.rivalGatherMinutes, (c, x) -> c.rivalGatherMinutes = x);
         integer("rivalLoserPenalty", s, "rivals", 0, 30, 1, c -> c.rivalLoserPenalty, (c, x) -> c.rivalLoserPenalty = x);
         integer("rivalLoserPauseHours", s, "rivals", 0, 24, 1, c -> c.rivalLoserPauseHours, (c, x) -> c.rivalLoserPauseHours = x);
+        // Меркантильные горожанки.
+        integer("mercCityPercent", s, "mercantile", 0, 100, 5, c -> c.mercCityPercent, (c, x) -> c.mercCityPercent = x);
+        integer("mercVillagePercent", s, "mercantile", 0, 100, 1, c -> c.mercVillagePercent, (c, x) -> c.mercVillagePercent = x);
+        integer("mercPoor", s, "mercantile", 0, 64, 1, c -> c.mercPoor, (c, x) -> c.mercPoor = x);
+        integer("mercRich", s, "mercantile", 8, 1024, 8, c -> c.mercRich, (c, x) -> c.mercRich = x);
+        integer("mercCoolMinutes", s, "mercantile", 0, 120, 1, c -> c.mercCoolMinutes, (c, x) -> c.mercCoolMinutes = x);
+        integer("mercCoolHearts", s, "mercantile", 0, 20, 1, c -> c.mercCoolHearts, (c, x) -> c.mercCoolHearts = x);
+        integer("mercAppetiteCap", s, "mercantile", 1, 288, 1, c -> c.mercAppetiteCap, (c, x) -> c.mercAppetiteCap = x);
+        integer("mercDashPercent", s, "mercantile", 0, 100, 5, c -> c.mercDashPercent, (c, x) -> c.mercDashPercent = x);
+        integer("mercGossipMinutes", s, "mercantile", 5, 1440, 5, c -> c.mercGossipMinutes, (c, x) -> c.mercGossipMinutes = x);
+        integer("mercLeaveMinutes", s, "mercantile", 5, 600, 5, c -> c.mercLeaveMinutes, (c, x) -> c.mercLeaveMinutes = x);
+        integer("mercBegMinutes", s, "mercantile", 1, 120, 1, c -> c.mercBegMinutes, (c, x) -> c.mercBegMinutes = x);
+        integer("mercAnniversaryMinutes", s, "mercantile", 10, 1440, 10, c -> c.mercAnniversaryMinutes, (c, x) -> c.mercAnniversaryMinutes = x);
         // Свадьба у колокола (трек L).
         integer("weddingVowSeconds", s, "wedding", 15, 120, 5, c -> c.weddingVowSeconds, (c, x) -> c.weddingVowSeconds = x);
         integer("weddingVowWaitSeconds", s, "wedding", 10, 180, 5, c -> c.weddingVowWaitSeconds, (c, x) -> c.weddingVowWaitSeconds = x);
@@ -350,6 +363,7 @@ public final class Tunables {
             case SOCIAL -> {
                 config.socialLayer = d.socialLayer; config.playerGender = d.playerGender; config.familyLife = d.familyLife; config.coSleep = d.coSleep; config.weddingCeremony = d.weddingCeremony;
                 config.rivals = d.rivals; config.rivalSteal = d.rivalSteal; config.rivalTrials = d.rivalTrials; config.rivalBellScene = d.rivalBellScene; config.rivalHud = d.rivalHud;
+                config.mercantile = d.mercantile; config.mercOutfit = d.mercOutfit; config.mercGossip = d.mercGossip; config.mercLeave = d.mercLeave; config.mercBeg = d.mercBeg;
                 config.confession = d.confession; config.confessionAbbotsOnly = d.confessionAbbotsOnly; config.confessionHistoryText = d.confessionHistoryText;
                 config.confessionStreamerPublic = d.confessionStreamerPublic; config.confessionPenancesOff = d.confessionPenancesOff;
                 config.pregnancy = d.pregnancy; config.pregnancyBelly = d.pregnancyBelly; config.pregnancyStatus = d.pregnancyStatus; config.familyFade = d.familyFade;

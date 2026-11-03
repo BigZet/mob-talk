@@ -27,6 +27,8 @@ public final class SocialProfile {
     String babyName = "";
     /** {@link VoiceAge} by name, "" until the villager's voice was first cast; villagers never age. */
     String age = "";
+    /** Решено ли, меркантильна ли она ({@link Mercantile#roll}): раз в жизни, при первой встрече после включения. */
+    boolean mercRolled;
 
     /** The deterministic sex, character and marks of a villager met in the world. */
     static SocialProfile of(UUID id, boolean child) {
@@ -76,7 +78,7 @@ public final class SocialProfile {
         SocialProfile c = new SocialProfile(); c.gender = gender; c.persona = persona; c.traits = new ArrayList<>(traits); c.bornTick = bornTick; c.stage = stage;
         c.expectingTick = expectingTick; c.expectingWith = expectingWith; c.age = age;
         c.conceivedTick = conceivedTick; c.pregnancyDays = pregnancyDays; c.pregnancyNews = pregnancyNews; c.pregnancyDay = pregnancyDay;
-        c.carrier = carrier; c.pregnancyTerm = pregnancyTerm; c.cravingDay = cravingDay; c.babyName = babyName;
+        c.carrier = carrier; c.pregnancyTerm = pregnancyTerm; c.cravingDay = cravingDay; c.babyName = babyName; c.mercRolled = mercRolled;
         return c;
     }
 }

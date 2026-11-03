@@ -203,7 +203,7 @@ public final class CardLedger {
                 case ANXIOUS -> "тревожный"; case SENSITIVE -> "ранимый"; case GLOOMY -> "мрачный"; case PEACEFUL -> "миролюбивый";
                 case INTROVERT -> "нелюдимый"; case FRIENDLY -> "дружелюбный"; case UNFLAPPABLE -> "невозмутимый"; case GRUMPY -> "ворчливый";
                 case ODD -> "чудной"; case EXTROVERT -> "компанейский"; case CHEERFUL -> "жизнерадостный"; case FLIRTY -> "кокетливый";
-                case GREEDY -> "жадный"; case PLAYFUL -> "игривый";
+                case GREEDY -> "жадный"; case PLAYFUL -> "игривый"; case MERCANTILE -> "меркантильный";
             };
             return p != null && p.personality != null && !p.personality.isBlank() ? word + "; " + TextBounds.characters(p.personality, 300) : word;
         }

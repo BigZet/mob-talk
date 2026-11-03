@@ -261,6 +261,18 @@ public final class MobTalkConfig {
     public boolean rivals = true, rivalSteal = true, rivalTrials = true, rivalBellScene = true, rivalHud = true;
     public int rivalWindowHours = 24, rivalMaxSuitors = 3, rivalStealMargin = 15, rivalTrialWin = 8, rivalTrialTry = 2;
     public int rivalStrong = 80, rivalGatherMinutes = 5, rivalLoserPenalty = 10, rivalLoserPauseHours = 2;
+    /** Меркантильные горожанки ({@link Mercantile}): включены ли; какая доля взрослых жительниц меркантильна в городе и в деревне
+     * (проценты); с какого богатства (изумруды) игрок не голодранец и с какого богат; за сколько минут без подарка она остывает на
+     * {@code mercCoolHearts} сердечек; потолок аппетита (изумруды); наряд меркантильной (шуба, леопард, блёстки). */
+    public boolean mercantile = true, mercOutfit = true;
+    public int mercCityPercent = 40, mercVillagePercent = 5, mercPoor = 8, mercRich = 64, mercCoolMinutes = 15, mercCoolHearts = 2, mercAppetiteCap = 64;
+    /** Ужин-«тарелочница»: с какой вероятностью (проценты) она после оплаты сразу уходит («подруга позвонила»). */
+    public int mercDashPercent = 35;
+    /** Сплетни подружек (жмот или щедрый — знают все меркантильные деревни, {@code mercGossipMinutes} минут); уход к богатому жителю,
+     * если игрок не дарил {@code mercLeaveMinutes} минут; сама клянчит подарки (не чаще раза в {@code mercBegMinutes} минут) и
+     * ждёт подарка на «годовщину» каждые {@code mercAnniversaryMinutes} минут отношений. */
+    public boolean mercGossip = true, mercLeave = true, mercBeg = true;
+    public int mercGossipMinutes = 120, mercLeaveMinutes = 60, mercBegMinutes = 10, mercAnniversaryMinutes = 60;
     /** Сон вместе: влюблённый житель ложится рядом, когда игрок спит; откуда он приходит (блоки) и сколько сердечек даёт ночь. */
     public boolean coSleep = true;
     public int coSleepRange = 12, coSleepHearts = 3;
@@ -410,6 +422,7 @@ public final class MobTalkConfig {
         copy.familyLife = familyLife; copy.weddingChance = weddingChance; copy.birthChance = birthChance; copy.childGrowthDays = childGrowthDays;
         copy.coSleep = coSleep; copy.weddingCeremony = weddingCeremony;
         copy.rivals = rivals; copy.rivalSteal = rivalSteal; copy.rivalTrials = rivalTrials; copy.rivalBellScene = rivalBellScene; copy.rivalHud = rivalHud;
+        copy.mercantile = mercantile; copy.mercOutfit = mercOutfit; copy.mercGossip = mercGossip; copy.mercLeave = mercLeave; copy.mercBeg = mercBeg;
         copy.confession = confession; copy.confessionAbbotsOnly = confessionAbbotsOnly; copy.confessionHistoryText = confessionHistoryText;
         copy.confessionStreamerPublic = confessionStreamerPublic; copy.confessionPenancesOff = confessionPenancesOff;
         copy.confessionSlavonic = confessionSlavonic; copy.confessionHud = confessionHud;

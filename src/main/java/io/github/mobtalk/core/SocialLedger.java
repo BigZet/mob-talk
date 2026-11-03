@@ -172,7 +172,18 @@ public final class SocialLedger {
                         refusal == null ? DATE_HEARTS : 0, "", refusal == null ? "" : refusal));
             }
         }
+        boolean mercantile = Mercantile.active(p) && adult && !related;
+        int wealth = Mercantile.wealth(snapshot);
+        // Подружки уже рассказали, жмот он или щедрый: незнакомка судит о кошельке и по сплетне.
+        Mercantile.Gossip heard = mercantile && !courtship.partners() ? Mercantile.heard(state, p, player, config, now) : null;
+        Mercantile.Purse purse = Mercantile.rumoured(Mercantile.purse(wealth, config), heard);
+        if (mercantile) Mercantile.gestures(rolled, purse); // Голодранцу — от ворот поворот, богатому — улыбки.
         List<String> facts = SocialPrompt.playerFacts(courtship, state.family, p.id, player, config);
+        if (mercantile) {
+            facts.addAll(Mercantile.facts(rapport, purse, wealth, Mercantile.neglected(rapport, config, now), courtship));
+            if (heard != null) facts.add(Mercantile.gossipFact(heard));
+            facts.addAll(Mercantile.dinnerFacts(rapport, now)); // Ужин-«тарелочница».
+        }
         facts.addAll(JealousyLedger.facts(p, rapport, PlayerIdentity.configOf(player, config), now)); // Трек J: ревность и ночь вместе.
         facts.addAll(WeddingLedger.facts(state, p, r, player, snapshot, config, now)); // Трек L: помолвка, свидетели, свадьба.
         facts.addAll(ChildLedger.facts(state, p, r, player, config, children)); // Трек N: особый вечер, беременность.
@@ -210,7 +221,8 @@ public final class SocialLedger {
     static GestureIntent gift(ConversationStore.Profile p, Rapport rapport, String item, String profession, boolean child, long now) {
         GiftCatalog.Value value = GiftCatalog.weigh(item, new GiftCatalog.Receiver(p.social.persona(), p.social.traits(), profession, child), rapport.given(item, now));
         String note = !value.known() ? "" : value.offends() ? value.category() + ", тебе это претит" : value.category();
-        return new GestureIntent(Gesture.GIFT, value.tier(), value.hearts(), item, note);
+        GestureIntent intent = new GestureIntent(Gesture.GIFT, value.tier(), value.hearts(), item, note);
+        return Mercantile.active(p) && !child ? Mercantile.gift(intent, rapport, item, rapport.given(item, now)) : intent;
     }
 
     /** A gift thrown at the villager's feet (no conversation): weighed and applied at once; null when the villager is outside the
@@ -308,11 +320,21 @@ public final class SocialLedger {
         r.score = ConversationStore.clamp(r.score + intent.hearts(), p.hostile());
         r.rapport.record(intent.gesture(), now, intent.hearts() != 0);
         boolean accepted = intent.outcome() == Gesture.Outcome.ACCEPTED;
-        if (intent.gesture() == Gesture.GIFT && intent.takesItem()) r.rapport.gave(intent.item(), now);
+        if (intent.gesture() == Gesture.GIFT && intent.takesItem()) {
+            r.rapport.gave(intent.item(), now);
+            if (Mercantile.active(p)) {
+                Mercantile.paid(r.rapport, intent.item(), config, now); // Аппетит растёт, остывание с нуля.
+                if (Mercantile.price(intent.item()) >= Mercantile.BRAG_PRICE)
+                    Mercantile.gossip(store.state, p, player, playerName, Mercantile.Talk.GENEROUS, "подарил " + Mercantile.thing(intent.item()), now);
+            }
+        }
         FamilyTree tree = store.state.family;
         MobState.Event felt;
         switch (intent.gesture()) {
-            case DATE -> { if (accepted) r.rapport.courtship(Courtship.DATING); felt = accepted ? MobState.Event.ROMANCE : null; }
+            case DATE -> {
+                if (accepted) { r.rapport.courtship(Courtship.DATING); r.rapport.datingAt = now; r.rapport.anniversaries = 0; }
+                felt = accepted ? MobState.Event.ROMANCE : null;
+            }
             case PROPOSE -> {
                 if (accepted) {
                     UUID former = partner(store.state, player);

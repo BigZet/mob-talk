@@ -28,7 +28,7 @@ public enum DealerStyle {
     public static DealerStyle of(Persona persona) {
         if (persona == null) return CAUTIOUS;
         return switch (persona) {
-            case GREEDY, PLAYFUL -> TRICKSTER;
+            case GREEDY, PLAYFUL, MERCANTILE -> TRICKSTER;
             case EXTROVERT, CHEERFUL, FLIRTY -> RECKLESS;
             case FRIENDLY, UNFLAPPABLE, GRUMPY, ODD -> CALCULATING;
             case ANXIOUS, SENSITIVE, GLOOMY, PEACEFUL, INTROVERT -> CAUTIOUS;

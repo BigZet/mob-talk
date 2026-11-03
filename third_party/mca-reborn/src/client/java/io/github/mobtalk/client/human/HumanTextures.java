@@ -56,8 +56,10 @@ public final class HumanTextures {
      * the neutral ones, or everyday clothes when the profession has none (modded professions). */
     public static Identifier clothes(HumanLook look) {
         List<Identifier> pool;
-        if (!look.outfit().isEmpty() && look.age() == HumanLook.Age.ADULT && !pool("clothing/wedding/" + look.outfit()).isEmpty())
-            return HumanGenes.pick(pool("clothing/wedding/" + look.outfit()), look.genes().clothes()); // Свадебный наряд Mob Talk.
+        // Свадебный наряд Mob Talk; "glam" — наряд меркантильной горожанки (clothing/glam).
+        String festive = look.outfit().equals("glam") ? "clothing/glam" : "clothing/wedding/" + look.outfit();
+        if (!look.outfit().isEmpty() && look.age() == HumanLook.Age.ADULT && !pool(festive).isEmpty())
+            return HumanGenes.pick(pool(festive), look.genes().clothes());
         if (look.age() != HumanLook.Age.ADULT) pool = pool("clothing/" + look.gender() + "/" + (look.age() == HumanLook.Age.TODDLER ? "toddler" : "child"));
         else {
             // Mob Talk: the village archer and guard (защита деревни) dress like the fletcher and the weaponsmith.
