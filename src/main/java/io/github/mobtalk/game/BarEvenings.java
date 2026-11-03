@@ -265,6 +265,7 @@ final class BarEvenings {
         // По стойке: раз в несколько секунд шаг к соседнему месту — ходьба видна, но от середины (своего места) не уводит.
         if (evening.goal == null && evening.atPost && random.nextInt(12) == 0) evening.goal = stroll(bartender, evening);
         if (evening.goal != null) return; // идёт вдоль стойки — движение держит afterBrain
+        if (!evening.atPost) return; // ещё идёт к стойке: навигацию и взгляд не трогаем, путь держит afterBrain
         bartender.getNavigation().stop();
         if (!MobActionController.registered(bartender, MemoryModuleType.LOOK_TARGET)) return;
         VillagerEntity guest = seated.isEmpty() ? null : seated.get(random.nextInt(seated.size()));
@@ -305,14 +306,17 @@ final class BarEvenings {
         if (!(mob instanceof VillagerEntity villager) || !isBartender(villager)) return false;
         Evening evening = eveningOfBartender(villager.getUuid());
         if (evening == null || evening.stand == null) return false;
-        // Прыжки выключены в ноль: любой подброс гасится в тот же тик.
-        Vec3d speed = villager.getVelocity();
-        if (speed.y > 0.1) villager.setVelocity(speed.x, 0, speed.z);
         List<BlockPos> line = evening.line.isEmpty() ? List.of(evening.stand) : evening.line;
         BlockPos nearest = line.getFirst();
         for (BlockPos spot : line) if (villager.getBlockPos().getSquaredDistance(spot) < villager.getBlockPos().getSquaredDistance(nearest)) nearest = spot;
         double d2 = villager.getBlockPos().getSquaredDistance(nearest);
         long since = mob.getWorld().getTime() - evening.bartenderSince;
+        // Прыжки выключены только у самой стойки (на неё не запрыгнет, из-за неё не выпрыгнет);
+        // по пути к посту прыжки нужны — ступени и рельеф деревни.
+        if (evening.atPost || d2 <= 2.25) {
+            Vec3d speed = villager.getVelocity();
+            if (speed.y > 0.1) villager.setVelocity(speed.x, 0, speed.z);
+        }
         boolean strayed = d2 > 4 || villager.getY() > evening.stand.getY() + 0.51;
         if (strayed && (evening.atPost || since > WALK_TICKS)) {
             // Сбежал с полосы (или запрыгнул на стойку): на ближайшее место линии сразу, не выжидая.
@@ -330,10 +334,12 @@ final class BarEvenings {
             else villager.getNavigation().startMovingTo(evening.goal.getX() + 0.5, evening.goal.getY(), evening.goal.getZ() + 0.5, 0.5);
             return true;
         }
-        if (d2 > 2.25) { // ещё не дошёл до стойки: идёт к линии, и ничто его больше не уводит
+        if (villager.getBlockPos().getSquaredDistance(evening.stand) > 2.25) {
+            // Ещё не дошёл: идёт к СВОЕМУ месту у середины стойки (самотест и игрок ждут его там),
+            // а не к ближнему краю линии, и ничто его больше не уводит.
             if (MobActionController.registered(villager, MemoryModuleType.WALK_TARGET))
-                villager.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(nearest, 0.55F, 0), 20);
-            else villager.getNavigation().startMovingTo(nearest.getX() + 0.5, nearest.getY(), nearest.getZ() + 0.5, 0.55);
+                villager.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(evening.stand, 0.55F, 0), 20);
+            else villager.getNavigation().startMovingTo(evening.stand.getX() + 0.5, evening.stand.getY(), evening.stand.getZ() + 0.5, 0.55);
             return true;
         }
         evening.atPost = true;
