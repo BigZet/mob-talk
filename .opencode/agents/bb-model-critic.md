@@ -1,7 +1,7 @@
 ---
-description: Read-only visual QA critic for Blockbench model iterations. Reads every screenshot of an iteration and returns VERDICT: ACCEPT or REVISE with precise artifact descriptions and non-destructive fix instructions. Launched by bb-model-dev; never edits anything.
+description: Read-only visual QA critic for Blockbench model iterations, on Kimi K3.1 Pro (vision-capable; GLM-5.3 in this subscription has no vision). Reads every screenshot of an iteration and returns VERDICT: ACCEPT or REVISE with precise artifact descriptions and non-destructive fix instructions. Launched by bb-model-dev; never edits anything.
 mode: subagent
-model: zai-coding-plan/glm-5.3#high
+model: kimi-code-plan-global/k3.1-pro
 steps: 40
 color: "#f97316"
 permissions:

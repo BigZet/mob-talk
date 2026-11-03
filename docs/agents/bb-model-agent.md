@@ -8,9 +8,11 @@
 ## Модели
 
 - Разработчик `bb-model-dev` — `zai-coding-plan/glm-5.3-flash#high` (быстрая,
-  с глубоким размышлением).
-- Критик `bb-model-critic` — `zai-coding-plan/glm-5.3#high` (reasoning high),
-  только для чтения: правки, шелл и Code Mode у него запрещены.
+  с глубоким размышлением, зрение есть).
+- Критик `bb-model-critic` — `kimi-code-plan-global/k3.1-pro` (Kimi K3.1 Pro:
+  зрение в подписке есть у Flash и Kimi, у GLM-5.3 без Flash — нет; выбор
+  Дмитрия — Kimi). Только для чтения: правки, шелл и Code Mode запрещены.
+  Если зрение Kimi в подписке откажет — откат на `zai-coding-plan/glm-5.3-flash#max`.
 
 ## Как запускать
 
