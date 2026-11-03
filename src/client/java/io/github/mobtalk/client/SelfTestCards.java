@@ -2,6 +2,7 @@ package io.github.mobtalk.client;
 
 import io.github.mobtalk.client.cards.CardTableClient;
 import io.github.mobtalk.client.cards.CardTableScreen;
+import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.core.cards.Card;
 import io.github.mobtalk.core.cards.CardTable;
 import io.github.mobtalk.core.cards.Rank;
@@ -28,6 +29,7 @@ final class SelfTestCards {
     private Runnable next = () -> { };
     private UUID farmer;
     private int farmerId, priestId, before, guestId;
+    private MobTalkConfig original;
 
     SelfTestCards(SelfTest test, int stageX, int stageY, int stageZ) { this.test = test; this.fx = stageX; this.fy = stageY; this.fz = stageZ; }
 
@@ -48,6 +50,16 @@ final class SelfTestCards {
 
     void run(Runnable then) {
         next = then;
+        // Деревню заглушить: зов на работу каждую секунду открывает жителю торговую услугу раньше нашей, и карточная услуга
+        // тогда отказывает («сначала закрой торговую») — ставка берёт лишний алмаз (16 вместо 12).
+        original = test.owner.config().copy();
+        MobTalkConfig draft = original.copy();
+        draft.villageNotices = false; draft.initiative = false;
+        test.owner.saveConfig(draft, message -> { if (message != null) test.fail("could not mute the village: " + message); });
+        test.await("settings: the village keeps quiet", 30, () -> !test.owner.config().villageNotices && !test.owner.reloading, this::stage);
+    }
+
+    private void stage() {
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         window(3); // Окно как у стримера: 1600×900, интерфейс ×3.
         test.log("cards stages: the priest's refusal, a table with the farmer, three stacked deals with screenshots");
@@ -273,6 +285,10 @@ final class SelfTestCards {
                 CardTableClient.Extra e = s == null ? null : s.extra(s.you());
                 return diamonds() == 1 && e != null && e.items().contains("minecraft:diamond") && e.favor() && e.discount() > 0;
             }, () -> after("the icons settle", 800, () -> {
+                if (view() != null && view().seats().get(0).pendingBet() != io.github.mobtalk.core.CardLedger.FAVOR_VALUE + 8) {
+                    CardTableClient.State s = CardTableClient.state();
+                    test.log("the table's last word: " + (s == null ? "no state" : s.notice()));
+                }
                 test.check(view().seats().get(0).pendingBet() == io.github.mobtalk.core.CardLedger.FAVOR_VALUE + 8,
                         "the stake counts the favour (4) and one diamond (8), the second stays in hand: " + view().seats().get(0).pendingBet());
                 shot("mobtalk-cards-14-stakes.png", () -> {
@@ -370,6 +386,7 @@ final class SelfTestCards {
 
     private void finish() {
         test.command("kill @e[tag=" + TAG + "]");
-        next.run();
+        test.owner.saveConfig(original, message -> { if (message != null) test.fail("could not restore the settings: " + message); });
+        test.await("settings restored", 30, () -> test.owner.config().villageNotices == original.villageNotices && !test.owner.reloading, next);
     }
 }
