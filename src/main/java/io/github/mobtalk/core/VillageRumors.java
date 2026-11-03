@@ -357,8 +357,9 @@ public final class VillageRumors {
         for (View view : village(villageId, now)) { balance += view.sign() * view.weight(); weight += view.weight(); }
         return weight <= 0 ? Reputation.NONE : new Reputation(balance / weight, weight);
     }
-    /** What the village thinks of one player: only rumours about them count, plus those about nobody named (older files, where
-     * the one player was meant). Another player's deeds do not colour this one's fame. Null {@code player} — every rumour. */
+    /** What the village thinks of one player: only rumours about them count, plus those about nobody named when the village
+     * knows no other player (older files, where the one player was meant). With several known players a nameless rumour is
+     * no one's: one vague deed must not stain them all. Another player's deeds do not colour this one's fame. Null {@code player} — every rumour. */
     public Reputation reputation(String villageId, UUID player, long now) { return reputation(villageId, player, now, true); }
     /** The same; {@code divine} false leaves out the rumours about the god's deeds (what the village would think without them). */
     public Reputation reputation(String villageId, UUID player, long now, boolean divine) {
@@ -366,9 +367,18 @@ public final class VillageRumors {
         Chronicle chronicle = villageId == null ? null : villages.get(villageId);
         if (chronicle == null) return Reputation.NONE;
         String id = player.toString();
+        String onlyKnown = null; boolean severalKnown = false;
+        for (Rumor rumor : chronicle.rumors) {
+            if (rumor.forgotten(now) || rumor.subjectId.isBlank()) continue;
+            if (onlyKnown == null) onlyKnown = rumor.subjectId;
+            else if (!onlyKnown.equals(rumor.subjectId)) { severalKnown = true; break; }
+        }
+        boolean namelessIsTheirs = !severalKnown && (onlyKnown == null || onlyKnown.equals(id));
         double balance = 0, weight = 0;
         for (Rumor rumor : chronicle.rumors) {
-            if (rumor.forgotten(now) || !divine && rumor.divine || rumor.divine && rumor.subjectId.isBlank() || !(rumor.subjectId.isBlank() && rumor.subject.isBlank() || rumor.subjectId.equals(id))) continue;
+            if (rumor.forgotten(now) || !divine && rumor.divine || rumor.divine && rumor.subjectId.isBlank()) continue;
+            boolean theirs = rumor.subjectId.equals(id) || rumor.subjectId.isBlank() && rumor.subject.isBlank() && namelessIsTheirs;
+            if (!theirs) continue;
             double w = rumor.weight(now);
             balance += rumor.sign * w; weight += w;
         }
