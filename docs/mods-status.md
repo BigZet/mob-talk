@@ -120,3 +120,17 @@
 - `scripts/build-pack.ps1`, `scripts/build-server-pack.ps1`, `scripts/export-mrpack.ps1` — состав клиента, сервера и `.mrpack`;
 - `gradle.properties`, `src/main/resources/fabric.mod.json` — версия и окружение Mob Talk;
 - `docs/pack.md`, `docs/server.md`, `docs/ctov.md`, `docs/server-research.md`, `docs/server-plan.md` — интеграции и прошлые проверки.
+
+## Зависимости из веток и ворктри (добавлено 3 ноября 2026, решение Дмитрия)
+
+Фичи из рабочих веток агентов **сливать в `main` по мере готовности, но в пак не включать, пока не
+доработаны города** (перестройка: `claude/project-thread-736naa`, `bigzet/city`). Сейчас в `main` их нет:
+
+- **Бандиты** — только в тестовой сборке `claude/test-officials-bandits-mood` (ворктри `mob-talk-test-obm`)
+  и ветке `claude/project-thread-yrcupz` (PR #10); все коммиты `yrcupz` уже в тестовой сборке;
+- **Милиция и громкоговоритель** — `claude/police-tts-handoff` + `claude/project-thread-faxwwz`;
+- **Меркантильные горожанки** — `claude/project-thread-3y6lor` (PR #9);
+- **Города с панельками, супермаркеты/рынок/киоски, машины, советские заборы, мебель квартир, лифты** —
+  кластер веток городов (см. `docs/agents/branch-registry.md`).
+
+Полный реестр веток, ворктри и правил слияния: **`docs/agents/branch-registry.md`**.
