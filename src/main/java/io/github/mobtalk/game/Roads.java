@@ -113,10 +113,19 @@ public final class Roads {
         int from = road.from == Integer.MIN_VALUE ? 0 : road.from, to = road.to == Integer.MIN_VALUE ? road.points.size() - 1 : road.to;
         // The road's columns as the builder found them, so that the check and the laying agree block for block (a sample line of
         // its own missed the road's last half block, 2026-10-25); only the columns of chunks laid, and of the part between the ends.
+        java.util.Map<Long, java.util.List<net.minecraft.util.math.BlockBox>> pieceCache = new java.util.HashMap<>();
         for (RoadBuilder.Column column : columns(road).values()) {
             if (column.index() < from || column.index() > to || Math.abs(column.across()) > RoadBuilder.CURB) continue;
             if (!road.done.contains(net.minecraft.util.math.ChunkPos.toLong(column.x() >> 4, column.z() >> 4))) continue;
-            int x = column.x(), z = column.z(), y0 = road.points.get(column.index()).h2() >> 1;
+            RoadPlan.Point point = road.points.get(column.index());
+            int x = column.x(), z = column.z(), y0 = point.h2() >> 1;
+            // The laying leaves a plain-road column beside a structure's piece alone (the road ends where the village begins),
+            // and what stands there stays: the check leaves the column alone too, or the village's own blocks count as
+            // obstacles (the test road crosses a village's ground, 2026-11-03).
+            if (point.kind() == RoadPlan.Kind.GROUND && RoadBuilder.blockedByStructure(
+                    pieceCache.computeIfAbsent(net.minecraft.util.math.ChunkPos.toLong(x >> 4, z >> 4),
+                            k -> RoadBuilder.pieces(world, new net.minecraft.util.math.ChunkPos(k))),
+                    column, point)) continue;
             for (int y = y0 + 1; y <= y0 + 4; y++) {
                 net.minecraft.block.BlockState state = world.getBlockState(at.set(x, y, z));
                 // The road's own (a lamp's base and post, a railing, a tunnel's wall) is no obstacle.
