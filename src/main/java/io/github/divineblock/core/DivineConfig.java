@@ -153,6 +153,11 @@ public final class DivineConfig {
     public boolean confessRemembersHidden = true;
     /** The same sin within two game days of its absolution weighs this many times more and is always heavy. */
     public int confessRelapseMultiplier = 2;
+    /** The seraph fights with its trained mind ({@code boss.ai.SeraphMind}): remembers the last seconds, reads the draw, dashes away,
+     * sweeps arrows back with a burning wing and leads its feathers; circles 12 blocks out. Off — it fights the old way. */
+    public boolean seraphDodge = true;
+    /** How many of the net's dashes and sweeps it really makes, percent (0..100). */
+    public int seraphDodgeSkill = 70;
     /** «Бог на стриме» ({@link StreamOverlay}): the OBS overlay may read the god at all; with the main reasons of a verdict; the
      * mercy of every soul online, not only the streamer's; the count of sins; and the ids of the punishments and mercies it
      * names only «Тайное деяние». */
@@ -198,6 +203,7 @@ public final class DivineConfig {
         bossDifficulty = clamp(bossDifficulty, 50, 300);
         if (disabledWeapons == null) disabledWeapons = new ArrayList<>();
         weaponPower = clamp(weaponPower, 50, 150);
+        seraphDodgeSkill = clamp(seraphDodgeSkill, 0, 100);
         churchSpacing = clamp(churchSpacing, 32, 256);
         confessLightTemple = clamp(confessLightTemple, 0, 100); confessLightVillage = clamp(confessLightVillage, 0, 100);
         confessHeavyTemple = clamp(confessHeavyTemple, 0, 100); confessHeavyVillage = clamp(confessHeavyVillage, 0, 100);
