@@ -190,6 +190,7 @@ final class SelfTestLift {
 
     /** A villager on the first floor's landing calls the lift by itself, rides and gets off on another floor. */
     private void villagerRide() {
+        int chanceWere = io.github.mobtalk.server.ServerConfig.get().liftVillagerChance;
         io.github.mobtalk.server.ServerConfig.update(c -> { c.liftVillagerChance = 100; return c; });
         Direction f = cabin.layout().facing();
         double x = (cabin.layout().left().getX() + cabin.layout().right().getX()) / 2.0 + 0.5 + f.getOffsetX() * 1.8;
@@ -209,7 +210,7 @@ final class SelfTestLift {
         };
         test.await("a villager rides the lift by itself", 150, upstairs, () -> {
             test.check(upstairs.getAsBoolean(), "the villager went up by lift and got off level with a floor (y " + String.format("%.2f", y.get()) + ")");
-            io.github.mobtalk.server.ServerConfig.update(c -> { c.liftVillagerChance = 25; return c; });
+            io.github.mobtalk.server.ServerConfig.update(c -> { c.liftVillagerChance = chanceWere; return c; }); // back to the admin's own setting, not a hardcoded 25
             finish();
         });
     }
