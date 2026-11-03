@@ -286,6 +286,13 @@ public final class Tunables {
         integer("inspectorFine", s, "officials", 1, 64, 1, c -> c.inspectorFine, (c, x) -> c.inspectorFine = x);
         integer("inspectorBlocks", s, "officials", 1, 200, 1, c -> c.inspectorBlocks, (c, x) -> c.inspectorBlocks = x);
         integer("inspectorDays", s, "officials", 1, 7, 1, c -> c.inspectorDays, (c, x) -> c.inspectorDays = x);
+        integer("paperworkSteps", s, "officials", 0, 5, 1, c -> c.paperworkSteps, (c, x) -> c.paperworkSteps = x);
+        integer("passportFee", s, "officials", 0, 64, 1, c -> c.passportFee, (c, x) -> c.passportFee = x);
+        integer("passportDays", s, "officials", 0, 7, 1, c -> c.passportDays, (c, x) -> c.passportDays = x);
+        integer("queueSeconds", s, "officials", 0, 60, 2, c -> c.queueSeconds, (c, x) -> c.queueSeconds = x);
+        integer("dachaPoints", s, "officials", 1, 20, 1, c -> c.dachaPoints, (c, x) -> c.dachaPoints = x);
+        integer("smitePercent", s, "officials", 0, 100, 5, c -> c.smitePercent, (c, x) -> c.smitePercent = x);
+        integer("revizorSeconds", s, "officials", 10, 300, 10, c -> c.revizorSeconds, (c, x) -> c.revizorSeconds = x);
         // The village casino.
         integer("casinoWeight", s, "casino", 0, 20, 1, c -> c.casinoWeight, (c, x) -> c.casinoWeight = x);
         integer("bouncerHealth", s, "casino", 20, 150, 5, c -> c.bouncerHealth, (c, x) -> c.bouncerHealth = x);
@@ -297,13 +304,6 @@ public final class Tunables {
         integer("roadLampSpacing", s, "roads", 8, 64, 2, c -> c.roadLampSpacing, (c, x) -> c.roadLampSpacing = x);
         integer("roadTreeStrip", s, "roads", 0, 8, 1, c -> c.roadTreeStrip, (c, x) -> c.roadTreeStrip = x);
         integer("roadTraffic", s, "roads", 0, 6, 1, c -> c.roadTraffic, (c, x) -> c.roadTraffic = x);
-        integer("paperworkSteps", s, "officials", 0, 5, 1, c -> c.paperworkSteps, (c, x) -> c.paperworkSteps = x);
-        integer("passportFee", s, "officials", 0, 64, 1, c -> c.passportFee, (c, x) -> c.passportFee = x);
-        integer("passportDays", s, "officials", 0, 7, 1, c -> c.passportDays, (c, x) -> c.passportDays = x);
-        integer("queueSeconds", s, "officials", 0, 60, 2, c -> c.queueSeconds, (c, x) -> c.queueSeconds = x);
-        integer("dachaPoints", s, "officials", 1, 20, 1, c -> c.dachaPoints, (c, x) -> c.dachaPoints = x);
-        integer("smitePercent", s, "officials", 0, 100, 5, c -> c.smitePercent, (c, x) -> c.smitePercent = x);
-        integer("revizorSeconds", s, "officials", 10, 300, 10, c -> c.revizorSeconds, (c, x) -> c.revizorSeconds = x);
         // The god's deeds in the villages (Б1).
         integer("divineStrength", s, "divine", 0, 200, 10, c -> c.divineStrength, (c, x) -> c.divineStrength = x);
         integer("divineDailyCap", s, "divine", 0, 300, 5, c -> c.divineDailyCap, (c, x) -> c.divineDailyCap = x);
