@@ -53,13 +53,36 @@
 Итог 3 ноября: локальные ветки — `main`, `bigzet/city`, `claude/police-tts-handoff`; на origin наши —
 `main`, `bigzet/city`, `claude/police-tts-handoff`; ворктри — только основной чекаут.
 
-## Ветки соседних проектов — не трогать
+## Ветки соседних проектов — консолидированы 3 ноября (вечер)
 
-В origin этого репозитория лежат неймспейсы `divine-block/*` (33 ветки), `rusflora/*`, `parrot-cages/main`.
-У соседних репозиториев (`C:\Users\bigze\Documents\GH\divine-block`, `rusflora`, `parrot-cages`) это
-**единственный remote** (имя `mobtalk` → `BigZet/mob-talk`): своих GitHub-репо у них нет. Эти ветки —
-каноническое хранилище работы соседних проектов: из этого репо их не удалять, не пушить в них и не
-переписывать.
+Неймспейсы `divine-block/*`, `rusflora/*`, `parrot-cages/*` — **не код mob-talk**: это три независимых
+мода (`divineblock` «Божественный блок», `rusflora`, `parrotcages`) со своими историями (общего предка
+с mob-talk нет), которые хостят свои ветки в BigZet/mob-talk как единственном remote (имя `mobtalk`;
+своих GitHub-репо у них нет). Локальные репо: `C:\Users\bigze\Documents\GH\divine-block`, `rusflora`,
+`parrot-cages`.
+
+По решению Дмитрия («ветки без содержания в main переносим в main с проверкой») 3 ноября выполнена их
+консолидация — в их собственных main, с проверкой сборкой и тестами:
+
+- **divine-block**: серия `seraph-rl`/`-balance`/`-v3`/`-v4` (PPO-сеть босса Серафим, 25–26 окт; линии
+  вложены друг в друга, v4 — новейшая) слита в `divine-block/main` (staging `bigzet/seraph-consolidation`,
+  merge-коммиты `b4959b8`→`e5d0360`); сборка зелёная, тестов 94→95, 0 падений. `divine-block/main` на
+  GitHub: `a9813dc6` → `e5d0360`. Backup-ветка `punishment-roulette-pre-rebase` — доребейзовый снапшот
+  влитой рулетки (уникальны 91 строка старых вариантов кода) — перекрыта и удалена.
+- **rusflora**: `hogweed` была влита в `rusflora/main` — удалена.
+- **parrot-cages**: `claude/z5-parrot-jail` была влита — удалена локально (на GitHub её уже не было).
+- Удалено: 33 ветки `divine-block/*`, `rusflora/hogweed`, 28 пустых worktree соседей (проверены на
+  незакоммиченную работу перед сносом).
+
+**Итог на GitHub: 6 веток** — `main`, `bigzet/city`, `claude/police-tts-handoff` (mob-talk) +
+`divine-block/main`, `rusflora/main`, `parrot-cages/main`.
+
+**Один сохранённый WIP:** worktree `divine-block/.claude/worktrees/night-bosses` — 15 незакоммиченных
+файлов агента (ночные боссы divine-block); ветка `night-bosses` локально и worktree сохранены нетронутыми,
+её закоммиченная часть влита в `divine-block/main`. Владелец должен сам закоммитить или сбросить.
+
+Эти неймспейсы из этого репо не удалять (их main'ы — единственная оф-машинная копия), не пушить в них
+мимо их владельцев и не переписывать.
 
 ## Правило сборки
 
