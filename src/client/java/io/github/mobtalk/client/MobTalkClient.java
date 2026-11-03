@@ -145,7 +145,7 @@ public final class MobTalkClient implements ClientModInitializer {
         io.github.mobtalk.client.game.ShopCartRenderer.register();
         talkKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.talk", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_V, "category.mobtalk"));
         settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.settings", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_F7, "category.mobtalk"));
-        tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_B, "category.mobtalk"));
+        tradeKey = KeyBindingHelper.registerKeyBinding(new KeyBinding("key.mobtalk.trade", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_Z, "category.mobtalk"));
         // Одиночка: клятву, распознанную сервером (OpenRouter/свой Whisper на сервере), берёт клиентская служба свадьбы.
         io.github.mobtalk.server.DialogueService.LOCAL_VOW = (player, text) -> {
             if (client.player == null || !client.player.getUuid().equals(player) || !wedding.takesVow() || wedding.serverVowOpen()) return false;
