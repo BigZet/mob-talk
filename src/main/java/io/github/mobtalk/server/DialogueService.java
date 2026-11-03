@@ -284,6 +284,11 @@ public final class DialogueService {
     /** Аудио на распознавание сервером (трек B даёт службу; заглушка отказывает). */
     public void talkAudio(UUID player, int entityId, String format, int seconds, byte[] audio) {
         Session session = session(player);
+        // The same intake rules as VoiceIntake.refusal: a modified client must not spend the transcription budget on
+        // an unsupported format or on seconds it never recorded.
+        if (!VoiceIntake.FORMATS.contains(format)) { refuse(session, "Неподдерживаемый формат аудио: " + format); return; }
+        if (audio == null || audio.length < 64) { refuse(session, "Пустое аудио"); return; }
+        if (seconds > Math.max(1, config().maxRecordingSeconds) + 1) { refuse(session, "Запись длиннее " + config().maxRecordingSeconds + " с"); return; }
         bridge.mobByEntityId(player, entityId).whenComplete((mob, error) -> onServer(() -> {
             if (error != null) { refuse(session, plain(error, "Моб погиб или выгрузился")); return; }
             if (!mob.id().equals(session.target)) select(session, mob);
@@ -633,10 +638,11 @@ public final class DialogueService {
     private static void checkCurrent(Session session, Request request) throws InterruptedException {
         if (Thread.currentThread().isInterrupted() || session.generation != request.generation) throw new InterruptedException("Cancelled");
     }
-    /** Запрос ещё в силе: поколение, цель (у собеседника), игрок в сети. Поток сервера. */
+    /** Запрос ещё в силе: поколение, цель (у собеседника), игрок в сети, жив и в том же мире. Поток сервера. */
     private boolean isCurrent(Session session, Request request) {
         return !closed && session.generation == request.generation && sessions.get(session.player) == session
-                && (request.overheard != null || request.target.equals(session.target));
+                && (request.overheard != null || request.target.equals(session.target))
+                && bridge.playerHere(session.player, request.dimension);
     }
 
     // ---- Доставка. ----
@@ -792,6 +798,8 @@ public final class DialogueService {
     }
     /** Реплика всем игрокам в {@code voiceSilentRange} от моба и её звук, когда докачается; возвращает номер клипа (0 — без звука). */
     int speak(Session session, Request request, String speaker, String text, String heard, SpeechStream audio, String kind, boolean background) {
+        String bounded = text == null ? "" : text.length() > io.github.mobtalk.net.MobTalkNet.MAX_TEXT
+                ? text.substring(0, io.github.mobtalk.net.MobTalkNet.MAX_TEXT) : text; // a longer reply would break the packet encoder and hang the voice queue
         int clipId = audio == null ? 0 : clipIds.incrementAndGet();
         double range = request.config.voiceSilentRange;
         if (audio != null) { session.voicesPending++; session.speakingMob = request.target; }
@@ -800,7 +808,7 @@ public final class DialogueService {
             if (!listeners.contains(session.player)) { listeners = new ArrayList<>(listeners); listeners.add(session.player); }
             for (UUID listener : listeners) {
                 boolean you = listener.equals(session.player);
-                out.speech(listener, new MobSpeechS2C(request.mobEntityId, request.target, speaker, text, you, clipId, range, kind, 0,
+                out.speech(listener, new MobSpeechS2C(request.mobEntityId, request.target, speaker, bounded, you, clipId, range, kind, 0,
                         heard, you ? "" : request.playerName));
             }
             if (audio == null) return;
