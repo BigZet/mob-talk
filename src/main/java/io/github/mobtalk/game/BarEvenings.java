@@ -291,16 +291,20 @@ final class BarEvenings {
      * in is left alone. */
     private void music(ServerWorld world, Bar bar, Evening evening, boolean on) {
         if (bar.jukebox() == null || !world.isChunkLoaded(bar.jukebox()) || !(world.getBlockEntity(bar.jukebox()) instanceof JukeboxBlockEntity jukebox)) return;
-        if (!on) { if (evening.music) jukebox.setStack(ItemStack.EMPTY); evening.music = false; return; }
+        if (!on) { if (evening.music && barDisc(jukebox.getStack())) jukebox.setStack(ItemStack.EMPTY); evening.music = false; return; }
         if (!evening.music) {
             if (!jukebox.getStack().isEmpty()) return;
             evening.music = true;
         }
+        if (!jukebox.getStack().isEmpty() && !barDisc(jukebox.getStack())) return; // the player's own disc: never the bar's to take out
         if (jukebox.getStack().isEmpty() || !jukebox.getManager().isPlaying()) {
             jukebox.setStack(ItemStack.EMPTY);
             jukebox.setDisc(new ItemStack(DISCS.get(random.nextInt(DISCS.size()))));
         }
     }
+
+    /** One of the discs the bar itself plays; a disc the player put in is not the bar's to take out. */
+    private static boolean barDisc(ItemStack stack) { return DISCS.stream().anyMatch(stack::isOf); }
 
     void clearRuntime() { bars.clear(); evenings.clear(); }
 
