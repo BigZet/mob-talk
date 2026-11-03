@@ -84,7 +84,7 @@ class FamilyTest {
 
     private static MobSnapshot villager(UUID id, UUID player, long revision, String held) { return SocialLayerTest.villager(id, player, revision, false, held); }
 
-    // A ring at 95 is accepted: the reply's commit makes the two spouses in the tree, and the prompt then says so.
+    // A mercantile wife takes a diamond at 90 (a cheap ring she refuses): the reply's commit makes the two spouses in the tree, and the prompt then says so.
     @Test void aProposalWithARingMarriesThePlayer() throws Exception {
         MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false; // Без свадьбы у колокола (трек L): брак сразу.
         ConversationStore store = ConversationStore.open(directory, config);
@@ -93,8 +93,9 @@ class FamilyTest {
         boolean female = store.state.profiles.get(mob.toString()).social.gender() == Gender.FEMALE;
         if (!female) store.state.profiles.get(mob.toString()).social.gender = Gender.FEMALE.name();
         store.state.profiles.get(mob.toString()).social.traits.clear();
+        store.state.profiles.get(mob.toString()).social.persona = Persona.MERCANTILE.name(); // Иначе бросок на меркантильность (5%) делает тест нестабильным.
         store.state.profiles.get(mob.toString()).relations.get(player.toString()).score = 90;
-        ConversationStore.Profile p = store.profile(villager(mob, player, store.revision(mob), "minecraft:gold_nugget"));
+        ConversationStore.Profile p = store.profile(villager(mob, player, store.revision(mob), "minecraft:diamond"));
         GestureIntent proposal = p.socialTurn.intent(Gesture.PROPOSE);
         assertEquals(Gesture.Outcome.ACCEPTED, proposal.outcome(), proposal.note());
         assertTrue(proposal.takesItem());
@@ -113,6 +114,24 @@ class FamilyTest {
         store.social().applyGesture(mob, player, "Стив", married.socialTurn.intent(Gesture.DIVORCE), System.currentTimeMillis());
         assertNull(store.state.family.spouse(player));
         assertEquals(90 + SocialLedger.WEDDING_HEARTS + SocialLedger.DIVORCE_HEARTS, store.relationship(mob, player));
+    }
+
+    // The mercantile refuses a cheap ring (a gold nugget is not in the prices): only a diamond or an engagement ring will do.
+    @Test void aCheapRingIsRefusedByTheMercantile() throws Exception {
+        MobTalkConfig config = new MobTalkConfig(); config.playerGender = "male"; config.weddingCeremony = false;
+        ConversationStore store = ConversationStore.open(directory, config);
+        UUID mob = UUID.randomUUID(), player = UUID.randomUUID();
+        store.observe(villager(mob, player, 0, "minecraft:air"));
+        boolean female = store.state.profiles.get(mob.toString()).social.gender() == Gender.FEMALE;
+        if (!female) store.state.profiles.get(mob.toString()).social.gender = Gender.FEMALE.name();
+        store.state.profiles.get(mob.toString()).social.traits.clear();
+        store.state.profiles.get(mob.toString()).social.persona = Persona.MERCANTILE.name(); // Точно меркантильная: бросок по UUID (5%) в тесте недетерминирован.
+        store.state.profiles.get(mob.toString()).relations.get(player.toString()).score = 90;
+        GestureIntent refused = store.profile(villager(mob, player, store.revision(mob), "minecraft:gold_nugget")).socialTurn.intent(Gesture.PROPOSE);
+        assertEquals(Gesture.Outcome.REFUSED, refused.outcome(), refused.note());
+        assertTrue(refused.note().contains("бриллиантом"), refused.note());
+        GestureIntent accepted = store.profile(villager(mob, player, store.revision(mob), "minecraft:diamond")).socialTurn.intent(Gesture.PROPOSE);
+        assertEquals(Gesture.Outcome.ACCEPTED, accepted.outcome(), accepted.note());
     }
 
     @Test void aReplyThatSaysYesToARefusedProposalIsCorrected() {

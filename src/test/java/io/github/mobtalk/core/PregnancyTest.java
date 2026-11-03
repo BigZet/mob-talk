@@ -182,6 +182,7 @@ class PregnancyTest {
         store.observe(SocialLayerTest.villager(villager, player, 0, false, "minecraft:air"));
         ConversationStore.Profile p = store.state.profiles.get(villager.toString());
         p.social.gender = gender.name(); p.social.traits.clear(); p.social.traits.add(VillagerTrait.BISEXUAL.name());
+        p.social.persona = Persona.FRIENDLY.name(); // Не меркантильная: иначе бросок по UUID (5%) флагает помолвку с золотым самородком.
         p.relations.get(player.toString()).score = 95;
         store.setBackstory(villager, "Марфа", "Ты родилась в Ольховке.", "", "", "");
         store.social().applyGesture(villager, player, "Стив", store.profile(SocialLayerTest.villager(villager, player, store.revision(villager), false, "minecraft:gold_nugget"))
