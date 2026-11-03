@@ -94,7 +94,11 @@ public final class OfficialContent {
                 if (inside <= 0) return TypedActionResult.pass(envelope);
                 if (!world.isClient) {
                     set(envelope, 0);
-                    user.getInventory().offerOrDrop(new ItemStack(Items.EMERALD, inside));
+                    while (inside > 0) { // порциями по стак: один ItemStack сверх maxCount — нестандартное состояние
+                        int portion = Math.min(inside, Items.EMERALD.getMaxCount());
+                        user.getInventory().offerOrDrop(new ItemStack(Items.EMERALD, portion));
+                        inside -= portion;
+                    }
                     world.playSound(null, user.getBlockPos(), SoundEvents.ITEM_BOOK_PAGE_TURN, SoundCategory.PLAYERS, 0.8f, 1.2f);
                     user.sendMessage(Text.translatable("mobtalk.official.envelope.emptied", inside), true);
                 }

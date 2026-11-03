@@ -300,23 +300,27 @@ public final class Roads {
         return out;
     }
 
-    /** The middle of the road at point {@code index}, at the height of the feet on it. */
+    /** The middle of the road at point {@code index}, at the height of the feet on it; null when Mob Talk is off or there is no such road. */
     public static Vec3d point(ServerWorld world, int id, int index) {
-        RoadNetwork.Road road = bridge(world).roads.road(world, id);
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return null;
         RoadPlan.Point p = road.points.get(Math.max(0, Math.min(road.points.size() - 1, index)));
         return new Vec3d(p.x(), p.h2() / 2.0, p.z());
     }
 
-    /** The first point of a bridge and of a tunnel, -1 where the road has none. */
+    /** The first point of a bridge and of a tunnel, -1 where the road has none (or Mob Talk is off, or there is no such road). */
     public static int[] firsts(ServerWorld world, int id) {
-        RoadNetwork.Road road = bridge(world).roads.road(world, id);
-        int bridge = -1, tunnel = -1;
+        MobGameBridge bridge = bridge(world);
+        RoadNetwork.Road road = bridge == null ? null : bridge.roads.road(world, id);
+        if (road == null) return new int[] { -1, -1 };
+        int firstBridge = -1, tunnel = -1;
         for (int i = 0; i < road.points.size(); i++) {
             RoadPlan.Kind kind = road.points.get(i).kind();
-            if (kind == RoadPlan.Kind.BRIDGE && bridge < 0) bridge = i;
+            if (kind == RoadPlan.Kind.BRIDGE && firstBridge < 0) firstBridge = i;
             if (kind == RoadPlan.Kind.TUNNEL && tunnel < 0) tunnel = i;
         }
-        return new int[] { bridge, tunnel };
+        return new int[] { firstBridge, tunnel };
     }
 
     /** A trip of the road ({@code cart}, {@code wagon} or {@code rider}) to its point nearest the spot, taking shape there. */
