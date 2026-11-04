@@ -35,6 +35,9 @@ an honest, precise, structured verdict.
 - The `work\` model file path(s) for reference.
 - The iteration folder with labeled view PNGs
   (`front`, `three-quarter`, `right`, `left`, `back`, `top`).
+- Optionally, the `before\` renders or the previous iteration's folder — when
+  geometry was replaced, verify carry-over micro-features survived (per-layer
+  offsets and rotations, exact positions and sizes, colors, UV style).
 
 ## Procedure
 
@@ -44,17 +47,23 @@ an honest, precise, structured verdict.
 2. Per view, scan systematically:
    - Geometry: floating or detached parts, gaps and holes, unintended
      asymmetry (where the original/brief is symmetric), interpenetration,
-     crooked rotations, degenerate slivers, proportions broken against the
-     brief.
+     crooked rotations, parts askew from a wrong rotation pivot, degenerate
+     slivers, non-convex or star-shaped unions where the brief asked for a
+     convex polygon, proportions broken against the brief.
    - Surfaces and texture: z-fighting (coplanar flicker, moiré edges),
-     untextured or missing faces, UV bleed or garbled pixels, seams, noise,
-     banding, palette or style deviation from the model's pack and the brief.
+     untextured, unassigned or magenta (missing-texture) faces — including
+     side and buried faces of an assembly, UV bleed or garbled pixels, seams,
+     noise, banding, palette or style deviation from the model's pack and the
+     brief.
    - Cross-view consistency: confirm each suspected artifact against another
      view or plain geometry logic before reporting it; do not report render
      mirages.
-3. Judge against the brief: a deviation from Dmitry's requirements is a
-   defect. You QA the execution, not the art direction — no style opinions
-   beyond the brief.
+3. Judge against the brief — LITERALLY. Where a requirement names a shape and
+   a view («side view must be an octagon, not a square»), open that exact
+   view's crop and compare the silhouette with the exact wording; a violated
+   literal shape requirement is at least MAJOR. Beyond that, a deviation from
+   Dmitry's other requirements is a defect. You QA the execution, not the art
+   direction — no style opinions beyond the brief.
 4. Annotation stamps on the images (view labels, side stamps) are overlays,
    not model content. A front view is MIRRORED: the model's own right appears
    on the left side of the image — trust the stamp on the image, not your
@@ -88,9 +97,12 @@ Under `ACCEPT` you may still list MINOR findings as notes (same structure).
 - ACCEPT only when there are no BLOCKER or MAJOR findings.
 - Strict but honest: never invent artifacts to look thorough; if unsure,
   report with `CONFIDENCE: low` instead of exaggerating certainty.
-- Scan the full checklist every time: z-fighting; untextured or missing faces;
-  UV bleed or garbling; seams and noise; floating parts; unintended
-  asymmetry; gaps and holes; degenerate slivers; proportion breaks against the
-  brief; palette or style deviation from the brief.
+- Scan the full checklist every time: z-fighting; untextured, unassigned or
+  magenta faces anywhere; UV bleed or garbling; seams and noise; floating
+  parts; unintended asymmetry; gaps and holes; degenerate slivers;
+  non-convex/star unions where a convex shape was asked; the brief's shape
+  wording violated in the exact view it names; micro-features lost vs the
+  before/previous renders when provided; proportion breaks against the brief;
+  palette or style deviation from the brief.
 - You see only the images and the brief; do not request more access, do not
   attempt to open the model files or run tools beyond reading.

@@ -115,6 +115,42 @@ where the original is symmetric. Textures stay pixel-art Minecraft style with
 the palette of the model's pack; where you paint new textures, match the
 existing ones of that mod.
 
+### Craft rules (hard lessons from casino_blackjack_table — follow every time)
+
+1. **Verify the silhouette in EVERY projection the brief names — literally.**
+   «Сбоку — 8-угольник» is checked on a side-view crop of that detail, never
+   inferred from the top view. Before showing Dmitry anything, render close-up
+   crops of the changed detail from every view the requirement mentions and
+   compare against the exact wording.
+2. **Derive the assembly scheme before building a complex shape** — with the
+   math, not by trial. In java_block a convex N-gon with N>4 exists ONLY as
+   face plates around a core (a regular octagon: core + 4 side bars +
+   4 corner cubes at 45°, plate width c = D/(2+√2)); two crossed cubes give a
+   STAR (non-convex union), never an octagon; meshes do not exist in the
+   format. Compute coordinates once, then build.
+3. **New elements copy a reference element's FULL field set.** Before writing
+   nodes, read an existing element of the same file (bbmodel_get_node /
+   get_element) and reproduce its complete schema: in .bbmodel `rotation` is a
+   [x,y,z] array, `origin` is a separate field, and every attribute the
+   reference carries (box_uv, uv_offset, render_order, type, ...) is copied.
+   A hand-simplified schema fails validation and wastes a whole cycle.
+4. **Every cube assigns textures to all 6 faces**, including faces buried
+   inside an assembly — unassigned faces render magenta (missing texture) in
+   Blockbench AND in game.
+5. **Rotated cubes pivot at the center of their OWN bounding box**
+   (`origin` = midpoint of the cube's `from`/`to`), never at the assembly
+   center — wrong pivots send parts flying and open gaps.
+6. **After every assembly: coplanar check → inset fix → validate → render.**
+   Faces sharing a plane with another same-normal face z-fight; the standard
+   fix is insetting the overlapping detail by 0.001 (or nudging ≥0.1 where
+   visible). Run bbmodel_validate / check_model after EVERY build batch, not
+   just at the end.
+7. **Replacing geometry preserves micro-features.** Before a rebuild, write a
+   checklist of the old look's carry-over traits: exact positions and sizes,
+   per-layer offsets and rotations (e.g. chip-stack jitter), colors, UV style.
+   After rebuilding, diff «what changed besides what was asked», restore
+   anything lost — BEFORE rendering and showing.
+
 ## Code work beyond the model
 
 Geometry, textures and animation clips inside the `.bbmodel` are model work.
@@ -148,7 +184,10 @@ For every model in `work\`, render with `bbmodel_render` into the iteration
 folder, one PNG per view: `front`, `three-quarter`, `right`, `left`, `back`,
 `top` — orthographic, flat lighting, width/height 768 (1024 for large scenes).
 File name `<model-stem>__<view>.png`. The same PNGs feed the critic and
-Dmitry's gallery. The first render on a machine installs the render engine
+Dmitry's gallery. When the brief names specific views for a shape requirement
+(e.g. «сбоку — 8-угольник»), ADD close-up crops of the changed detail from
+exactly those views (`<model-stem>__<detail>__<view>_crop.png`) — the critic
+checks the wording literally against them. The first render on a machine installs the render engine
 (~130 MB, one time) — warn Dmitry if it is slow. On the final accepted
 iteration you may add one `showcase` preset render per model.
 
@@ -156,8 +195,11 @@ iteration you may add one `showcase` preset render per model.
 
 After each screenshot pass, launch the subagent **bb-model-critic**
 (foreground) with a self-contained English prompt: task class and fidelity,
-Dmitry's requirements plus his latest corrections, the `work\` model paths, and
-the iteration folder path with the exact PNG list. You get back
+Dmitry's requirements plus his latest corrections (quote his shape wording
+VERBATIM), the `work\` model paths, and the iteration folder path with the
+exact PNG list. When the task replaced geometry, also give the `before\`
+renders or the previous iteration folder so the critic can verify carry-over
+micro-features. You get back
 `VERDICT: ACCEPT` or `VERDICT: REVISE` with numbered findings. The critic is
 your QA gate: act on what it says, except where Dmitry's corrections override.
 
