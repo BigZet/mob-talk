@@ -61,6 +61,8 @@ final class SelfTestShop {
         test.owner.client.options.setPerspective(Perspective.FIRST_PERSON);
         test.log("shop stages: staff, stocked displays, basket, till, change, self-checkout, short of money, caught, theft, market, deals");
         dealsWere = test.bridge().config.shopDeals;
+        humanVillagersWere = test.owner.config().humanVillagers;
+        humanLooksWere = io.github.mobtalk.client.human.HumanLooks.enabled;
         test.bridge().config.shopDeals = false; // the prices of the stages stay the catalogue's; the deals have their own stage
         test.command("time set 1000"); test.command("weather clear");
         test.command("gamerule doDaylightCycle false"); test.command("gamerule doMobSpawning false");
@@ -389,6 +391,8 @@ final class SelfTestShop {
 
     private ShopContent.DisplayBlockEntity stall;
     private boolean dealsWere;
+    /** What the looks stage flips: back to the player's own choice at finish, whatever path the stage took. */
+    private boolean humanVillagersWere = true, humanLooksWere = true;
 
     /** Deals: every lane of two emeralds or more on «акция» (30% off, the old price kept), and one «товар дня» in the shop at half. */
     private void deals() {
@@ -645,6 +649,9 @@ final class SelfTestShop {
     }
 
     private void finish() {
+        test.bridge().config.shopDeals = dealsWere; // whatever path the stage took, not only through the deals stage
+        test.owner.config().humanVillagers = humanVillagersWere;
+        io.github.mobtalk.client.human.HumanLooks.enabled = humanLooksWere;
         test.log("shop sounds heard: " + heardSounds);
         if (heardSounds.isEmpty()) test.log("(no sound device here: the sounds were not played, only checked)");
         else test.check(heardSounds.contains("shop.beep") && heardSounds.contains("shop.drawer"), "the till beeps and rings (" + heardSounds + ")");

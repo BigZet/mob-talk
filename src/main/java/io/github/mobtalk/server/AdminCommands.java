@@ -9,6 +9,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import io.github.mobtalk.MobTalkMod;
+import io.github.mobtalk.server.web.AdminWeb;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.command.CommandSource;
@@ -19,6 +20,7 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Uuids;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -89,7 +91,9 @@ public final class AdminCommands {
                 .then(literal("web").executes(context -> {
                     String address = webAddress.get();
                     return reply(context, address == null || address.isBlank() ? "Веб-админка не запущена" : "Веб-админка: " + address);
-                }))
+                })
+                        .then(literal("password").then(argument("new", StringArgumentType.word())
+                                .executes(context -> reply(context, webPassword(StringArgumentType.getString(context, "new")))))))
                 .then(literal("overlay")
                         .then(literal("say").then(argument("minutes", IntegerArgumentType.integer(1, 120)).then(argument("text", StringArgumentType.greedyString())
                                 .executes(context -> reply(context, OverlayHub.banner(StringArgumentType.getString(context, "text"), IntegerArgumentType.getInteger(context, "minutes")))))))
@@ -141,6 +145,21 @@ public final class AdminCommands {
         if (bridge == null) return reply(context, "Игра Mob Talk не запущена");
         long total = bridge.memory.skip(minutes * 60_000L);
         return reply(context, "Часы Mob Talk промотаны на " + minutes + " мин. (всего " + total / 60_000L + " мин.): голод, чары, вечер и ревность ушли вперёд");
+    }
+
+    /** {@code /mobtalk admin web password <новый>}: смена пароля админки из игры; старые сессии живут, пока не истекут. */
+    private static String webPassword(String password) {
+        AdminWeb web = AdminLink.web();
+        if (web == null) return "Веб-админка не запущена";
+        try {
+            web.setPassword(password);
+            return "Пароль веб-админки сменён; вошедшие по старому паролю сессии действуют до истечения срока";
+        } catch (IllegalArgumentException weak) {
+            return "Пароль не сменён: " + weak.getMessage();
+        } catch (IOException failure) {
+            MobTalkMod.LOGGER.warn("Не удалось сохранить новый пароль веб-админки", failure);
+            return "Пароль не сменён: не получилось записать файл настроек (" + failure.getMessage() + ")";
+        }
     }
 
     private static int reply(CommandContext<ServerCommandSource> context, String text) {

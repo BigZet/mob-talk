@@ -282,9 +282,11 @@ final class SelfTestWedding {
     private void silentWedding() {
         test.command("tp " + name() + " " + at(0, 8));
         test.await("pause: back at the bell", 2, () -> false, () -> {
-            test.bridge().startWedding(bride2, playerId());
+            CompletableFuture<String> startedSilent = test.bridge().startWedding(bride2, playerId());
             test.await("the wedding without network began", 10, () -> scene() != null, () -> {
-                Vec3d spot = scene().playerSpot();
+                try { test.log("start: '" + (startedSilent.isDone() ? startedSilent.join() : "ещё выполняется") + "'"); }
+                catch (RuntimeException why) { test.log("start failed: " + why.getMessage()); }
+                Vec3d spot = scene() == null ? null : scene().playerSpot();
                 if (spot != null) test.command("tp " + name() + " " + spot.x + " " + spot.y + " " + spot.z);
                 int voiced = test.owner.wedding.voiced;
                 long started = System.currentTimeMillis();

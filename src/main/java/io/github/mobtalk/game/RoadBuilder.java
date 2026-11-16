@@ -558,7 +558,7 @@ final class RoadBuilder {
     /** The bounding boxes of the structure pieces this chunk takes part in (villages, outposts, ruins…), read from the chunks holding
      * their starts when those are loaded; never loads one (that would stall the server thread). A structure whose start is not loaded
      * is left to the natural-blocks check, which keeps the road off its buildings anyway. */
-    private static List<BlockBox> pieces(ServerWorld world, ChunkPos chunk) {
+    static List<BlockBox> pieces(ServerWorld world, ChunkPos chunk) {
         List<BlockBox> out = new ArrayList<>();
         WorldChunk here = world.getChunkManager().getWorldChunk(chunk.x, chunk.z);
         if (here == null) return out;
@@ -574,7 +574,7 @@ final class RoadBuilder {
     }
 
     /** A column inside a piece near the road's height (one block of margin round it) is the structure's, not the road's. */
-    private static boolean blockedByStructure(List<BlockBox> pieces, Column column, RoadPlan.Point point) {
+    static boolean blockedByStructure(List<BlockBox> pieces, Column column, RoadPlan.Point point) {
         int y = point.h2() / 2;
         for (BlockBox box : pieces) {
             if (column.x() < box.getMinX() - 1 || column.x() > box.getMaxX() + 1 || column.z() < box.getMinZ() - 1 || column.z() > box.getMaxZ() + 1) continue;
@@ -588,7 +588,8 @@ final class RoadBuilder {
 
     /** Works one column, noting each block it digs out in {@code cleared}; with {@code cleared} null only checks that everything it
      * would change is natural (or the road's own). */
-    private static boolean column(ServerWorld world, Palette palette, RoadPlan.Point point, Column column, Set<Long> cleared) {
+    static boolean column(ServerWorld world, Palette palette, RoadPlan.Point point, Column column, Set<Long> cleared) {
+        // package-visible: Roads.obstacles runs the same dry pass to agree with the laying block for block.
         Ops ops = new Ops(world, palette, column.x(), column.z(), cleared);
         int h2 = point.h2(), y0 = h2 >> 1;
         boolean slab = (h2 & 1) == 1;

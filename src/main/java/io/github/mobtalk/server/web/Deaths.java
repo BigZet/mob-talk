@@ -34,8 +34,17 @@ public final class Deaths {
     public synchronized void add(long t, UUID player, String name, String world, int x, int y, int z, String cause) {
         points.add(Json.obj("t", t, "player", Json.player(player, name), "world", world, "x", x, "y", y, "z", z, "cause", cause));
         while (points.size() > LIMIT) points.remove(0);
-        try { if (file != null) { Files.createDirectories(file.getParent()); Files.writeString(file, Json.GSON.toJson(points), StandardCharsets.UTF_8); } }
-        catch (IOException ignored) { /* The point stays in memory; the next death writes the file again. */ }
+        try { save(); } catch (IOException ignored) { /* The point stays in memory; the next death writes the file again. */ }
+    }
+
+    /** As the waypoints do: through a temp file, so a crash mid-write cannot leave the marker file broken (an empty list would
+     * then eat every death marker at load). */
+    private void save() throws IOException {
+        if (file == null) return;
+        Files.createDirectories(file.toAbsolutePath().getParent());
+        Path temp = file.resolveSibling(file.getFileName() + ".tmp");
+        Files.writeString(temp, Json.GSON.toJson(points), StandardCharsets.UTF_8);
+        Files.move(temp, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
     }
 
     /** Map markers ({@code kind: death}) of one world. */

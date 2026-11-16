@@ -296,13 +296,16 @@ final class ConfessionHost {
     // ---- Епитимья в HUD. ----
 
     private void huds() {
+        Set<UUID> online = new HashSet<>();
         for (DialogueService.Session session : service.sessions()) {
+            online.add(session.player);
             String hud = bridge.penanceHud(session.player);
             String before = huds.put(session.player, hud);
             if (hud.equals(before)) continue;
             JsonObject json = new JsonObject(); json.addProperty("text", hud);
             service.out().screen(session.player, "penance", json.toString());
         }
+        huds.keySet().retainAll(online); // ушедшие не держат свою строку HUD до reset()
     }
     void reset() { tracks.clear(); huds.clear(); }
 }

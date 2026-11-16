@@ -1,5 +1,6 @@
 package io.github.mobtalk.client;
 
+import io.github.mobtalk.client.cards.CardTableScreen;
 import io.github.mobtalk.core.MobTalkConfig;
 import io.github.mobtalk.game.CasinoContent;
 import io.github.mobtalk.game.CasinoWorldgen;
@@ -375,13 +376,17 @@ final class SelfTestCasino {
                 view(7.5, 1, 5.5, 10.5, 1.5, 5.5);
                 test.await("pause: at the table for 21", 1, () -> false, () -> {
                     use(at(9, 1, 5), Direction.WEST);
-                    test.await("the table for 21 answers", 6, () -> heard("game of 21", "игры в 21", "to deal", "сдавать", "Bring someone", "Приведи"), this::trouble);
+                    // Молчаливая ветка: житель уже у стола — экран карточного стола открывается без единого слова в чат.
+                    test.await("the table for 21 answers", 6, () -> heard("game of 21", "игры в 21", "to deal", "сдавать", "Bring someone", "Приведи")
+                            || test.owner.client.currentScreen instanceof CardTableScreen, this::trouble);
                 });
             });
         });
     }
 
     private void trouble() {
+        // Стол мог открыться экраном (молчаливая ветка выше): закрыть, сессия уберётся сама.
+        test.owner.client.execute(() -> test.owner.client.setScreen(null));
         test.command("gamemode survival " + name());
         test.command("effect clear " + name());
         test.command("effect give " + name() + " minecraft:regeneration 60 1 true");

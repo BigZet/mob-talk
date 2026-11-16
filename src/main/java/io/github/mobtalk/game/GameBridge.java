@@ -78,6 +78,9 @@ public interface GameBridge {
     CompletableFuture<MobView> mob(UUID mobId, String dimension);
     /** Игрок в сети; падает, если вышел. */
     CompletableFuture<PlayerView> player(UUID playerId);
+    /** Игрок в сети, жив и в этом измерении (формат — как {@link MobView#dimension()}). Ответ «да» с потока не-сервера:
+     * настоящую проверку делает ближайшая контрольная точка на потоке сервера. */
+    boolean playerHere(UUID playerId, String dimension);
     /** Живые игроки не дальше {@code range} блоков от моба в этом измерении; пусто, если моба нет. */
     CompletableFuture<List<UUID>> playersNear(UUID mobId, String dimension, double range);
     /** Живые знакомые мобы (с историей или именем в памяти) не дальше {@code range} от игрока. */

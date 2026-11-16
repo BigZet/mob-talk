@@ -387,8 +387,8 @@ final class LiveGameView implements GameView {
                 world = server.getOverworld(); BlockPos spawn = world.getSpawnPos(); x = spawn.getX() + 0.5; y = spawn.getY(); z = spawn.getZ() + 0.5;
             } else if ("respawn".equals(Json.string(target, "to"))) {
                 BlockPos spawn = player.getSpawnPointPosition();
-                world = spawn == null ? server.getOverworld() : server.getWorld(player.getSpawnPointDimension());
-                if (spawn == null) { spawn = world.getSpawnPos(); }
+                world = spawn == null ? null : server.getWorld(player.getSpawnPointDimension());
+                if (world == null) { world = server.getOverworld(); spawn = world.getSpawnPos(); } // точка возрождения в мире, которого нет
                 x = spawn.getX() + 0.5; y = spawn.getY(); z = spawn.getZ() + 0.5;
             } else {
                 String worldId = target.has("world") ? target.get("world").getAsString() : "minecraft:overworld";

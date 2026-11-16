@@ -356,6 +356,58 @@ class CardTableServiceTest {
         assertEquals(CardTable.Phase.PLAYERS, service.game(farmer).phase(), "after the wait the deal goes without the one who did not bet");
         assertTrue(service.game(farmer).hands(1).isEmpty());
     }
+    // Скидку просят второй раз в ту же раздачу — житель отказывает вслух (в строке стола), а не молчит.
+    @Test void askingForTheDiscountTwiceRefusesAloud() {
+        service.open(alice, 7, "");
+        memory.recordHelp(farmer, "minecraft:villager", "Фрол", alice, "Alice", now.get());
+        press(alice, "discount", 0);
+        press(alice, "discount", 0);
+        assertTrue(out.lastJson(alice).contains("уже на кону"), "the second ask is refused aloud");
+    }
+
+    // Играющему на интерес скидку не ставят: отказ вслух, а не молчаливое «нельзя».
+    @Test void discountOnInterestRefusesAloud() {
+        service.open(alice, 7, "");
+        press(alice, "interest", 0);
+        press(alice, "discount", 0);
+        assertTrue(out.lastJson(alice).contains("на интерес"), "the ask is refused aloud");
+    }
+
+    // Раздача прошла мимо места со скидкой, но без ставки: скидка уходит со стола — следующий вопрос про неё
+    // упирается в «раз в день», а не молча проваливается в «уже на кону».
+    @Test void aDealWithoutTheSeatClearsItsExtras() {
+        service.stack(WIN);
+        service.open(alice, 7, "");
+        service.open(bob, 7, "");
+        memory.recordHelp(farmer, "minecraft:villager", "Фрол", bob, "Bob", now.get());
+        press(bob, "discount", 0);
+        press(alice, "bet", 4);
+        press(alice, "deal", 0);
+        now.addAndGet(CardTableService.DEAL_WAIT_MILLIS + 100);
+        service.tick(); // Боб не поставил — раздача идёт без него
+        playStacked();
+        assertEquals(CardTable.Phase.SETTLED, service.game(farmer).phase());
+        now.addAndGet(CardTableService.CATCH_MILLIS + 15_000);
+        for (int i = 0; i < 40; i++) service.tick(); // следующая раздача: незакрытые услуги — со стола
+        press(bob, "discount", 0);
+        assertTrue(out.lastJson(bob).contains("сегодня") && !out.lastJson(bob).contains("уже на кону"),
+                "the daily ledger answers, not the dead extra");
+    }
+
+    // «Смотреть» освобождает место вместе со скидкой: следующий, кто сядет, наследия не получает.
+    @Test void switchingToWatchingLeavesTheDiscountBehind() {
+        UUID carol = UUID.randomUUID();
+        world.people.put(carol, new CardTableService.Person(carol, "Carol", "minecraft:overworld", 2, 64, 0, true));
+        world.emeralds.put(carol, 40);
+        service.open(bob, 7, "");
+        memory.recordHelp(farmer, "minecraft:villager", "Фрол", bob, "Bob", now.get());
+        press(bob, "discount", 0);
+        press(bob, "watch", 0);
+        service.open(carol, 7, "");
+        memory.recordHelp(farmer, "minecraft:villager", "Фрол", carol, "Carol", now.get());
+        press(carol, "discount", 0);
+        assertFalse(out.lastJson(carol).contains("уже на кону"), "carol's own discount is not refused");
+    }
     // ---- Фейки. ----
 
     static final class FakeWorld implements CardTableService.World {

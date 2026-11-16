@@ -101,8 +101,9 @@ public final class AdminHttpServer {
 
     private Response mounted(HttpExchange exchange, String prefix, String path) throws Exception {
         if (!exchange.getRequestMethod().equals("GET") && !exchange.getRequestMethod().equals("HEAD")) throw new ApiException(405, "method_not_allowed", "Только GET.");
-        if (auth.session(cookie(exchange.getRequestHeaders().getFirst("Cookie"))) == null)
-            return Response.text(401, "text/plain; charset=utf-8", "Нужно войти в админку.");
+        AdminAuth.Session mounted = auth.session(cookie(exchange.getRequestHeaders().getFirst("Cookie")));
+        if (mounted == null) return Response.text(401, "text/plain; charset=utf-8", "Нужно войти в админку.");
+        if (mounted.level() != AdminAuth.Level.ADMIN) throw ApiException.forbidden("Это может только администратор.");
         String rest = path.length() <= prefix.length() ? "" : java.net.URLDecoder.decode(path.substring(prefix.length()), java.nio.charset.StandardCharsets.UTF_8);
         return mountHandler.handle(new Request("GET", rest, Request.parseQuery(exchange.getRequestURI().getRawQuery()), Map.of(),
                 exchange.getRequestHeaders(), new byte[0], exchange.getRemoteAddress().getAddress().getHostAddress(), null));

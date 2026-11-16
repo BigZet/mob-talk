@@ -7,11 +7,19 @@
 # client screenshots (mobtalk-server-*.png) and window shots (window-*.png). Never touches another server, the base instances,
 # the pack instance's mods or worlds (the world is copied), nor another run's games. Games count toward the machine's limit (6).
 # Usage: powershell -ExecutionPolicy Bypass -File scripts\run-selftest.ps1 -Only server   (or this script directly)
-#   [-ModsFrom <folder with our other mods' jars>] [-World 'stream 1 (сборка)'] [-ShotEverySeconds 60] [-Keep] [-NoBuild] [-Only confession]
+#   [-ModsFrom <folder with our other mods' jars>] [-World <world of the pack's saves; default: the first 'stream 1*'>]
+#   [-ShotEverySeconds 60] [-Keep] [-NoBuild] [-Only confession]
 #   -Only confession: after the setup only the confession steps (idea Б4), then the clients quit.
-param([string]$ModsFrom = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server-integration\mods'), [string]$World = 'stream 1 (сборка)',
+param([string]$ModsFrom = (Join-Path $env:LOCALAPPDATA 'MobTalkPack\server-integration\mods'), [string]$World = '',
     [int]$ShotEverySeconds = 60, [switch]$Keep, [switch]$NoBuild, [string]$Pack = 'mob-talk-pack', [int]$TimeoutMinutes = 45, [string]$Only = '')
 $ErrorActionPreference = 'Stop'
+# The default world is looked up by prefix: a Cyrillic literal in this file's defaults dies in PowerShell 5.1's
+# ANSI reading of BOM-less scripts, and the server then cannot find 'stream 1 (сборка)' in the pack's saves.
+if (-not $World) {
+    $World = @(Get-ChildItem "$env:APPDATA\PrismLauncher\instances\$Pack\minecraft\saves" -Directory -ErrorAction SilentlyContinue |
+        Where-Object Name -like 'stream 1*' | Sort-Object Name | ForEach-Object Name)[0]
+}
+if (-not $World) { throw "no 'stream 1*' world in the pack instance $Pack saves" }
 Import-Module (Join-Path $PSScriptRoot 'ParallelPrism.psm1') -Force
 $repo = Split-Path -Parent $PSScriptRoot
 $branch = (git -C $repo rev-parse --abbrev-ref HEAD).Trim()

@@ -22,6 +22,7 @@ import java.util.*;
  * {@code sleep(pos)} в обычной позе. Утром пара говорит одну реплику через очередь инициативы. Никаких сцен и анимаций сверх
  * ванильного сна. Только серверный поток. */
 final class CoSleepController {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("mobtalk-cosleep");
     private static final long PERIOD = 5;
     /** Пара, не дошедшая до кровати за столько тиков (или за задержку ночи, если она дольше), бросает затею. */
     private static final long GIVE_UP_TICKS = 20 * 30;
@@ -59,8 +60,16 @@ final class CoSleepController {
         invites.values().removeIf(invite -> now > invite.until());
         for (ServerPlayerEntity player : world.getPlayers()) {
             boolean asleep = player.isSleeping() && player.getSleepingPosition().isPresent();
-            if (asleep && sleeping.add(player.getUuid())) { lay.put(player.getUuid(), (long) world.getServer().getTicks()); lieDown(world, player, now); }
-            else if (!asleep && sleeping.remove(player.getUuid())) { holds.remove(player.getUuid()); lay.remove(player.getUuid()); bridge.children.woke(player); woke(world, player, now); }
+            if (asleep) {
+                if (sleeping.add(player.getUuid())) lay.put(player.getUuid(), (long) world.getServer().getTicks());
+                // One try per sleep is not enough: a night dies quietly (the promised bed got taken, the partner was busy for
+                // a moment) and nothing retries while the player keeps lying there. While there is no night yet and the
+                // give-up term allows, invite the partners again — lieDown skips whoever already has a night.
+                boolean noNight = nights.values().stream().noneMatch(night -> night.player.equals(player.getUuid()));
+                Long laid = lay.get(player.getUuid());
+                if (noNight && laid != null && world.getServer().getTicks() - laid < giveUpTicks()) lieDown(world, player, now);
+            }
+            else if (sleeping.remove(player.getUuid())) { holds.remove(player.getUuid()); lay.remove(player.getUuid()); bridge.children.woke(player); woke(world, player, now); }
         }
         // A held night shows how long it still waits, so the player knows the morning will come.
         if (world.getTime() % 20 == 2) for (ServerPlayerEntity player : world.getPlayers()) {
@@ -74,15 +83,19 @@ final class CoSleepController {
             Entity entity = world.getEntity(entry.getKey());
             if (entity == null) { if (world.getServer().getPlayerManager().getPlayer(night.player) == null) it.remove(); continue; } // В другом мире.
             if (!(entity instanceof VillagerEntity villager) || !villager.isAlive()) { it.remove(); continue; }
-            if (night.asleep) { if (!villager.isSleeping()) it.remove(); continue; }
+            if (night.asleep) { if (!villager.isSleeping()) { LOGGER.info("сон вместе: {} проснулась раньше игрока", night.player); it.remove(); } continue; }
             ServerPlayerEntity player = world.getServer().getPlayerManager().getPlayer(night.player);
-            if (player == null || !player.isSleeping() || world.getTime() - night.startedTick > giveUpTicks()) { it.remove(); continue; }
+            if (player == null || !player.isSleeping() || world.getTime() - night.startedTick > giveUpTicks()) {
+                if (player != null && player.isSleeping()) LOGGER.info("сон вместе: пара игрока не дошла до кровати {} за {} тиков", night.bed.toShortString(), world.getTime() - night.startedTick);
+                it.remove(); continue;
+            }
             if (villager.squaredDistanceTo(Vec3d.ofBottomCenter(night.bed)) > 4.0) continue;
             BlockState state = world.getBlockState(night.bed);
             boolean shared = player.getSleepingPosition().map(night.bed::equals).orElse(false);
-            if (!(state.getBlock() instanceof BedBlock) || !shared && state.get(BedBlock.OCCUPIED)) { it.remove(); continue; }
+            if (!(state.getBlock() instanceof BedBlock) || !shared && state.get(BedBlock.OCCUPIED)) { LOGGER.info("сон вместе: кровать {} исчезла или занята", night.bed.toShortString()); it.remove(); continue; }
             villager.getNavigation().stop();
             villager.sleep(night.bed); // Ванильный сон: та же поза, что у жителя в своей кровати.
+            LOGGER.info("сон вместе: житель лёг в {} рядом с игроком", night.bed.toShortString());
             night.asleep = true;
             invites.remove(villager.getUuid());
             if (bridge.memory.jealousy().sleptTogether(villager.getUuid(), player.getUuid(), MobGameBridge.playerName(player), now)) bridge.children.night(villager, player); // Трек N.
@@ -183,8 +196,13 @@ final class CoSleepController {
                 mob.getNavigation().stop();
                 return true;
             }
-            if (MobActionController.registered(mob, MemoryModuleType.WALK_TARGET))
+            if (MobActionController.registered(mob, MemoryModuleType.WALK_TARGET)) {
                 mob.getBrain().remember(MemoryModuleType.WALK_TARGET, new WalkTarget(night.bed, 0.8F, 1), 20);
+                // The vanilla night activity may hold no consumer for the remembered WALK_TARGET (the villager then stands
+                // still — the family self-test caught exactly that): nudge the navigation directly whenever it idles.
+                if (mob.getNavigation().isIdle())
+                    mob.getNavigation().startMovingTo(night.bed.getX() + 0.5, night.bed.getY(), night.bed.getZ() + 0.5, 0.8);
+            }
             else mob.getNavigation().startMovingTo(night.bed.getX() + 0.5, night.bed.getY(), night.bed.getZ() + 0.5, 0.8);
             return true;
         }

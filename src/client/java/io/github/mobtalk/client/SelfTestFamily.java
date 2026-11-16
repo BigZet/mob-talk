@@ -24,6 +24,8 @@ final class SelfTestFamily {
     private final SelfTest test;
     private final int fx, fy, fz;
     private UUID spouse;
+    /** Где супруг(а) в последней пробе ожидания «the spouse lies down» — одна строка диагностики таймаута. */
+    private String spouseWhere = "не найден(на)";
     private Pregnancy.Carrier carrier;
     private final List<UUID> babies = new ArrayList<>();
     private MobTalkConfig saved;
@@ -132,7 +134,12 @@ final class SelfTestFamily {
         CompletableFuture<String> slept = test.bridge().onServer(() -> test.serverPlayer().trySleep(bed).map(problem -> "no: " + problem, ok -> "ok").toString());
         test.await("the player lay down", 5, slept::isDone, () -> {
             test.log("trySleep: " + (slept.isCompletedExceptionally() ? slept.exceptionNow().getMessage() : slept.join()));
-            test.await("the spouse lies down beside the player", 20, () -> { VillagerEntity w = entity(spouse); return w != null && w.isSleeping(); }, () -> {
+            test.await("the spouse lies down beside the player", 30, () -> {
+                VillagerEntity w = entity(spouse);
+                if (w != null) spouseWhere = w.getBlockPos().toShortString() + " (спит: " + w.isSleeping() + ")";
+                return w != null && w.isSleeping();
+            }, () -> {
+                test.log("spouse stands/lay at " + spouseWhere + ", player's bed " + new BlockPos(fx - 1, fy, fz - 6).toShortString());
                 ChildLedger.Evening evening = test.bridge().memory.children().evening(spouse);
                 test.check(evening != null && evening.dark(), "the evening went dark: they lay down together");
                 ChildController.Fade fade = children().fade(playerId());

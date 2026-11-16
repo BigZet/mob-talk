@@ -117,6 +117,25 @@ class VillageRumorsTest {
         assertEquals(0, rumors.deliver(trader, "village-far", stranger, 600), "not back into the village it came from");
     }
 
+    // A nameless rumour stains no one when the village knows several players; with one known player it is his (older files meant him).
+    @Test void namelessRumourIsNoOnesWhenTheVillageKnowsSeveralPlayers() {
+        VillageRumors rumors = new VillageRumors();
+        rumors.add(VILLAGE, List.of(new VillageRumors.View("", "Ладко побил горшки", "Аксинья", 5, -1, 0, 5, "Ладко"),
+                new VillageRumors.View("", "кто-то обманул бабку", "Аксинья", 4, -1, 0, 4)), Map.of(), ids, 0);
+        assertEquals(9, rumors.reputation(VILLAGE, ladko, 0).weight(), 1e-9, "named his own plus the nameless one");
+        assertEquals(VillageRumors.Reputation.NONE, rumors.reputation(VILLAGE, aksinya, 0), "the nameless one is not hers");
+        VillageRumors both = new VillageRumors();
+        both.add(VILLAGE, List.of(new VillageRumors.View("", "Ладко побил горшки", "Аксинья", 5, -1, 0, 5, "Ладко"),
+                new VillageRumors.View("", "Аксинья утаила сдачу", "Ладко", 3, -1, 0, 3, "Аксинья"),
+                new VillageRumors.View("", "кто-то шумел ночью", "Ладко", 4, -1, 0, 4)), Map.of(), ids, 0);
+        assertEquals(5, both.reputation(VILLAGE, ladko, 0).weight(), 1e-9, "several known players: the nameless one is no one's");
+        assertEquals(3, both.reputation(VILLAGE, aksinya, 0).weight(), 1e-9);
+        VillageRumors old = new VillageRumors();
+        old.add(VILLAGE, List.of(new VillageRumors.View("", "кто-то обманул бабку", "Аксинья", 4, -1, 0, 4)), Map.of(), ids, 0);
+        assertEquals(4, old.reputation(VILLAGE, ladko, 0).weight(), 1e-9, "older files: the one player was meant");
+        assertEquals(4, old.reputation(VILLAGE, aksinya, 0).weight(), 1e-9);
+    }
+
     // A newcomer picks up the loudest rumours; the village's opinion of the player is the balance of signs by weight.
     @Test void newcomersKnowTheTalkAndTheVillageHasAnOpinion() {
         VillageRumors rumors = new VillageRumors();

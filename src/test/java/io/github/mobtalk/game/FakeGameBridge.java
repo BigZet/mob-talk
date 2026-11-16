@@ -114,6 +114,10 @@ public final class FakeGameBridge implements GameBridge {
         PlayerView player = players.get(playerId);
         return player == null ? fail("player " + playerId, "Игрок вышел") : result("player " + playerId, player);
     }
+    @Override public boolean playerHere(UUID playerId, String dimension) {
+        PlayerView player = players.get(playerId);
+        return player != null && player.alive() && player.dimension().equals(dimension);
+    }
     @Override public CompletableFuture<List<UUID>> playersNear(UUID mobId, String dimension, double range) {
         MobView mob = mobs.get(mobId);
         List<UUID> near = new ArrayList<>();

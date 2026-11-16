@@ -127,13 +127,18 @@ class TunablesTest {
     @Test void resetSectionTouchesOnlyItsTab() {
         MobTalkConfig draft = new MobTalkConfig();
         draft.socialLayer = false; draft.initiative = false; draft.heartsFriend = 5; draft.rudeness = 0;
+        draft.keepAcquainted = false; draft.giftsFirst = false; draft.confessionSlavonic = false; draft.confessionHud = false;
+        draft.shopShoppers = false; draft.shopDeals = false; draft.shopLoyalty = false;
         draft.vision = "always"; draft.playerNamesNeutral = "Дима"; draft.commonPrompt = "Говори кратко"; draft.microphoneName = "USB";
         draft.placeClassifier = false; draft.guardChase = 60; draft.decider = "jev"; draft.whisperModel = "small";
         Tunables.resetSection(draft, Tunables.Section.SOCIAL);
         assertTrue(draft.socialLayer); assertTrue(draft.initiative); assertEquals(40, draft.heartsFriend);
+        assertTrue(draft.giftsFirst); assertTrue(draft.confessionSlavonic); assertTrue(draft.confessionHud);
+        assertTrue(draft.shopShoppers); assertTrue(draft.shopDeals); assertTrue(draft.shopLoyalty);
         assertEquals(0, draft.rudeness); assertFalse(draft.placeClassifier); assertEquals("jev", draft.decider);
         Tunables.resetSection(draft, Tunables.Section.TALK); assertEquals(2, draft.rudeness); assertEquals("Говори кратко", draft.commonPrompt);
         Tunables.resetSection(draft, Tunables.Section.GENERAL); assertEquals("unusual", draft.vision); assertEquals("Дима", draft.playerNamesNeutral);
+        assertTrue(draft.keepAcquainted);
         Tunables.resetSection(draft, Tunables.Section.ACTIONS); assertTrue(draft.placeClassifier); assertEquals(16, draft.guardChase);
         Tunables.resetSection(draft, Tunables.Section.MODEL); assertEquals("rules", draft.decider);
         Tunables.resetSection(draft, Tunables.Section.VOICE); assertEquals("large-v3-turbo", draft.whisperModel); assertEquals("USB", draft.microphoneName);

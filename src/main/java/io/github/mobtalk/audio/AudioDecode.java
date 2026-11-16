@@ -48,27 +48,33 @@ public final class AudioDecode {
     }
 
     static byte[] wav(byte[] wav) throws IOException {
-        ByteBuffer in = ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN);
-        if (wav.length < 44 || in.getInt(0) != 0x46464952 || in.getInt(8) != 0x45564157) throw new IOException("Это не WAV.");
-        int position = 12, channels = 1, rate = RATE, bits = 16;
-        while (position + 8 <= wav.length) {
-            int id = in.getInt(position), size = in.getInt(position + 4);
-            int body = position + 8;
-            if (id == 0x20746d66) { // "fmt "
-                if (in.getShort(body) != 1) throw new IOException("WAV не в PCM.");
-                channels = in.getShort(body + 2); rate = in.getInt(body + 4); bits = in.getShort(body + 14);
-            } else if (id == 0x61746164) { // "data"
-                int length = Math.min(size, wav.length - body);
-                if (bits != 16) throw new IOException("WAV не 16-битный.");
-                short[] samples = new short[length / 2];
-                for (int i = 0; i < samples.length; i++) samples[i] = in.getShort(body + i * 2);
-                ByteArrayOutputStream out = new ByteArrayOutputStream(length);
-                new Resampler(rate, channels).push(samples, samples.length, out);
-                return out.toByteArray();
+        try {
+            ByteBuffer in = ByteBuffer.wrap(wav).order(ByteOrder.LITTLE_ENDIAN);
+            if (wav.length < 44 || in.getInt(0) != 0x46464952 || in.getInt(8) != 0x45564157) throw new IOException("Это не WAV.");
+            int position = 12, channels = 1, rate = RATE, bits = 16;
+            while (position + 8 <= wav.length) {
+                int id = in.getInt(position), size = in.getInt(position + 4);
+                int body = position + 8;
+                if (id == 0x20746d66) { // "fmt "
+                    if (size < 16 || body + 16 > wav.length) throw new IOException("WAV без полного заголовка формата.");
+                    if (in.getShort(body) != 1) throw new IOException("WAV не в PCM.");
+                    channels = in.getShort(body + 2); rate = in.getInt(body + 4); bits = in.getShort(body + 14);
+                } else if (id == 0x61746164) { // "data"
+                    if (size < 0) size = wav.length - body; // потоковый заголовок: данные до конца файла
+                    int length = Math.min(size, Math.max(0, wav.length - body));
+                    if (bits != 16) throw new IOException("WAV не 16-битный.");
+                    short[] samples = new short[length / 2];
+                    for (int i = 0; i < samples.length; i++) samples[i] = in.getShort(body + i * 2);
+                    ByteArrayOutputStream out = new ByteArrayOutputStream(length);
+                    new Resampler(rate, channels).push(samples, samples.length, out);
+                    return out.toByteArray();
+                }
+                if (size < 0 || body + size > wav.length) throw new IOException("Повреждённый WAV."); // size из заголовка врёт: без этого уходили бы в вечный цикл и NegativeArraySize
+                position = body + size + (size & 1);
             }
-            position = body + size + (size & 1);
-        }
-        throw new IOException("В WAV нет данных.");
+            throw new IOException("В WAV нет данных.");
+        } catch (IOException failure) { throw failure; }
+        catch (Exception failure) { throw new IOException("Не удалось раскодировать WAV озвучку."); }
     }
 
     /** Interleaved 16-bit samples at any rate and channel count → mono 24 kHz, linear interpolation. */

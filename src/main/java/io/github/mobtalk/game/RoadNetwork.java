@@ -375,16 +375,25 @@ final class RoadNetwork {
             if (start == null || !start.hasChildren()) { state.saved.villageWork.put(key, sign.toString()); state.saved.markDirty(); continue; }
             if (v != null && v.hub()) { junction(world, state, key, v, roads, start, sign.toString()); continue; }
             BlockBox box = start.getBoundingBox();
-            boolean loaded = true;
-            for (int cx = (box.getMinX() - 8) >> 4; cx <= (box.getMaxX() + 8) >> 4 && loaded; cx++)
-                for (int cz = (box.getMinZ() - 8) >> 4; cz <= (box.getMaxZ() + 8) >> 4 && loaded; cz++)
-                    loaded = world.getChunkManager().getWorldChunk(cx, cz) != null;
-            if (!loaded) continue;
             List<RoadVillages.Entry> entries = new ArrayList<>();
             for (Road road : roads)
                 entries.add(road.a.equals(key) ? RoadVillages.Entry.of(road.points, road.from, true) : RoadVillages.Entry.of(road.points, road.to, false));
+            // The land the work may touch: the village's box widened by 8, and a station's reach (16) round each road's end, so the
+            // clamp inside RoadVillages does not cut a station in half. Nothing is loaded here, only checked: reading an unloaded
+            // chunk would generate it right in the middle of the server tick.
+            int[] area = { box.getMinX() - 8, box.getMinZ() - 8, box.getMaxX() + 8, box.getMaxZ() + 8 };
+            for (RoadVillages.Entry entry : entries) {
+                int ex = entry.at().blockX(), ez = entry.at().blockZ();
+                area[0] = Math.min(area[0], ex - 16); area[1] = Math.min(area[1], ez - 16);
+                area[2] = Math.max(area[2], ex + 16); area[3] = Math.max(area[3], ez + 16);
+            }
+            boolean loaded = true;
+            for (int cx = area[0] >> 4; cx <= area[2] >> 4 && loaded; cx++)
+                for (int cz = area[1] >> 4; cz <= area[3] >> 4 && loaded; cz++)
+                    loaded = world.getChunkManager().getWorldChunk(cx, cz) != null;
+            if (!loaded) continue;
             try {
-                RoadVillages.Report report = RoadVillages.work(world, start, entries, RoadBuilder.palette(roads.get(0).palette), bridge.config.roadLamps);
+                RoadVillages.Report report = RoadVillages.work(world, start, entries, RoadBuilder.palette(roads.get(0).palette), bridge.config.roadLamps, area);
                 LOGGER.info("дороги {}: деревня {}: {}", sign, key, report);
                 state.villageReports.put(key, report.toString());
             } catch (RuntimeException failure) {

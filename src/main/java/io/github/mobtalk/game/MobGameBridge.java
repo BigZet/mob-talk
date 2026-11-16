@@ -628,11 +628,22 @@ public final class MobGameBridge implements GameBridge {
     }
     @Override public <T> CompletableFuture<T> onServer(java.util.function.Supplier<T> work) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        server.execute(() -> {
+        Runnable task = () -> {
             if (active != this) { future.completeExceptionally(new IllegalStateException("Мир сменился")); return; }
             try { future.complete(work.get()); } catch (Throwable failure) { future.completeExceptionally(failure); }
-        });
+        };
+        // Already on the server thread (a networking payload's task): queueing behind ourselves cannot finish until this task
+        // ends, so any caller blocking on the future would stall the thread up to its timeout. Run such work right here.
+        if (server.isOnThread()) task.run(); else server.execute(task);
         return future;
+    }
+
+    /** Онлайн ли игрок, жив и в этом измерении (формат — как {@code MobView#dimension()}). С другого потока ответ
+     * консервативно «да»: настоящую проверку сделает ближайшая контрольная точка на потоке сервера. */
+    public boolean playerHere(UUID player, String dimension) {
+        if (!server.isOnThread()) return true;
+        ServerPlayerEntity found = server.getPlayerManager().getPlayer(player);
+        return found != null && found.isAlive() && found.getWorld().getRegistryKey().getValue().toString().equals(dimension);
     }
     /** The known village at this spot: the one founded in the village structure there (with the option on), an old village by the
      * old rule, else the nearest within the village radius; null outside any. Only looks: an old village takes a structure only
